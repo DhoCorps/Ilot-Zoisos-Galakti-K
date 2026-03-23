@@ -1,0 +1,32 @@
+services:
+  # --- MONGODB (La base Documentaire) ---
+  mongo_db:
+    image: mongo:7.0
+    container_name: ilot_mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password1234
+    volumes:
+      - mongo_data:/data/db
+
+  # --- NEO4J (La base Graphe) ---
+  neo4j_db:
+    image: neo4j:5.12
+    container_name: ilot_neo4j
+    restart: always
+    ports:
+      - "7474:7474" # Interface Web
+      - "7687:7687" # Connexion Code (Bolt)
+    environment:
+      - NEO4J_AUTH=neo4j/password777
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
+    volumes:
+      - neo4j_data:/data
+
+volumes:
+  mongo_data:
+  neo4j_data:

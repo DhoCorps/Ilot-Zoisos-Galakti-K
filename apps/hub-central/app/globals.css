@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 🌌 L'ambiance du Nexus */
+:root {
+  --nexus-bg: #020617; /* slate-950 */
+  --nexus-card: rgba(15, 23, 42, 0.6); /* slate-900 avec opacité */
+  --nexus-accent: #10b981; /* emerald-500 */
+  --nexus-border: rgba(30, 41, 59, 0.5); /* slate-800 */
+}
+
+@layer base {
+  body {
+    background-color: var(--nexus-bg);
+    color: #e2e8f0; /* slate-200 */
+    -webkit-font-smoothing: antialiased;
+    /* Texture subtile */
+    background-image: radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.05) 0%, transparent 80%);
+  }
+}
+
+@layer components {
+  /* Version sécurisée sans @apply */
+  .nexus-card {
+    background-color: var(--nexus-card);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--nexus-border);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.05);
+  }
+
+  .glass-panel {
+    background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.05), transparent);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
