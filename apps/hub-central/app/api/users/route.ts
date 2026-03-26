@@ -9,12 +9,13 @@ export async function GET() {
   try {
     await connectToDatabase();
     
-    // On ne récupère QUE l'uid et le username, triés par ordre alphabétique
-    const birds = await UserModel.find({}, 'uid username').sort({ username: 1 }).lean();
-    
-    return NextResponse.json({ success: true, data: birds }, { status: 200 });
-  } catch (error) {
-    console.error("❌ [GET USERS] Erreur :", error);
-    return NextResponse.json({ error: "Impossible de scanner les oiseaux." }, { status: 500 });
+    // 🟢 On s'assure de demander l'email dans la sélection
+    // Le .lean() permet d'avoir des objets JavaScript purs (plus légers)
+    const users = await UserModel.find({}).select("uid username email").lean();
+
+    return NextResponse.json({ success: true, data: users }, { status: 200 });
+  } catch (error: any) {
+    console.error("❌ [GET USERS] Erreur :", error.message);
+    return NextResponse.json({ error: "Impossible de récupérer le troupeau." }, { status: 500 });
   }
 }

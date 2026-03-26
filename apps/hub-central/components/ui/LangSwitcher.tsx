@@ -1,28 +1,31 @@
 "use client";
 
 import { useLocale } from 'next-intl';
-import { useRouter, usePathname } from 'next/navigation';
-import { Languages, Loader2 } from 'lucide-react'; // Ajout de Loader2
+// 🛑 On supprime l'ancien routeur
+// import { useRouter, usePathname } from 'next/navigation';
+
+// 🟢 On importe notre boussole magique
+import { useRouter, usePathname } from '../../navigation'; 
+import { Languages, Loader2 } from 'lucide-react'; 
 import { useState } from 'react';
 
 export const LangSwitcher = () => {
   const locale = useLocale();
   const router = useRouter();
-  const pathname = usePathname();
+  // 🪄 Ici, pathname vaut "/dashboard" (la locale est masquée !)
+  const pathname = usePathname(); 
   
-  // État pour l'effet de transition
   const [isSyncing, setIsSyncing] = useState(false);
 
   const toggleLanguage = () => {
-    setIsSyncing(true); // On active la vibration
+    setIsSyncing(true); 
     
     const nextLocale = locale === 'fr' ? 'en' : 'fr';
-    const newPath = pathname.replace(`/${locale}`, `/${nextLocale}`);
     
-    // On laisse l'animation vivre un court instant avant la redirection
+    // On laisse ton animation vivre un court instant
     setTimeout(() => {
-      router.push(newPath);
-      // Le changement de page réinitialisera l'état naturellement
+      // 🚀 LE COUP DE GRÂCE : On remplace la page actuelle en injectant la nouvelle langue
+      router.replace(pathname, { locale: nextLocale });
     }, 400); 
   };
 

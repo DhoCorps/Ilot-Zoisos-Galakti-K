@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+// 🟢 On importe le routeur et le Link magiques de next-intl
+import { useRouter, Link } from '../../../navigation'; 
 import { useTranslations } from 'next-intl';
 import { useVibe } from '../../../context/VibeContext';
-import  LoadingZoizos  from '../../../components/ui/LoadingZoizos'; 
+import LoadingZoizos from '../../../components/ui/LoadingZoizos'; 
 
 export default function RegisterPage() {
   const t = useTranslations('auth');
-  const router = useRouter();
+  const router = useRouter(); // 🪄 Ce routeur connaît la langue !
   const { mode } = useVibe();
   
   const [formData, setFormData] = useState({
@@ -43,20 +44,23 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Erreur lors de l'éclosion.");
+        throw new Error(data.error || "Une erreur est survenue");
       }
 
-      // Succès ! On redirige vers le login
+      // ✅ Redirection dynamique vers la page de connexion, en gardant la langue !
       router.push('/auth/login?registered=true');
+
     } catch (err: any) {
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
+
   if (isLoading) {
-  return <LoadingZoizos message="Synchronisation avec le Graphe en cours..." />;
-    }
+    return <LoadingZoizos message="Synchronisation avec le Graphe en cours..." />;
+  }
+
   return (
     <div className="flex min-h-[80vh] items-center justify-center p-4">
       <div className={`w-full max-w-md rounded-2xl border bg-slate-900/50 p-8 backdrop-blur-xl transition-all duration-500 shadow-2xl ${
@@ -138,7 +142,8 @@ export default function RegisterPage() {
         </form>
 
         <p className="mt-6 text-center text-sm text-slate-500">
-          Déjà un compte ? <a href="/auth/login" className="text-cyan-400 hover:underline">Se connecter</a>
+          {/* 🟢 Remplacement de la balise <a> par notre Link i18n */}
+          Déjà un compte ? <Link href="/auth/login" className="text-cyan-400 hover:underline">Se connecter</Link>
         </p>
       </div>
     </div>

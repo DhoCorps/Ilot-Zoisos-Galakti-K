@@ -1,21 +1,17 @@
-import NextAuth, { DefaultSession } from "next-auth";
+import { DefaultSession, DefaultUser } from "next-auth";
+import { JWT as DefaultJWT } from "next-auth/jwt";
 
 declare module "next-auth" {
-  /**
-   * Étend la structure de l'objet 'user' dans la session
-   */
   interface Session {
     user: {
+      id?: string;
       uid?: string;
       role?: string;
       signature?: string;
     } & DefaultSession["user"];
   }
 
-  /**
-   * Étend l'objet 'User' renvoyé par le authorize
-   */
-  interface User {
+  interface User extends DefaultUser {
     uid?: string;
     role?: string;
     signature?: string;
@@ -23,10 +19,8 @@ declare module "next-auth" {
 }
 
 declare module "next-auth/jwt" {
-  /**
-   * Étend le jeton JWT pour inclure nos champs personnalisés
-   */
-  interface JWT {
+  interface JWT extends DefaultJWT {
+    id?: string;
     uid?: string;
     role?: string;
     signature?: string;

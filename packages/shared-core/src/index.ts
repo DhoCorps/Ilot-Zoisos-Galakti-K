@@ -2,3 +2,4 @@
 export * from './integrity/moral-checker';
 export * from './sync-engine/orchestrator';
 export * from './sync-engine/team.orchestrator';
+export * from './sync-engine/role.orchestrator';

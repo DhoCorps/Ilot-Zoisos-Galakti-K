@@ -1,35 +1,97 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
+import { useState, useRef, useEffect } from 'react';
+// 🟢 Notre boussole i18n
+import { Link, useRouter } from "../../navigation"; 
+import { signOut, useSession } from "next-auth/react";
+import { Settings, User, LogOut } from "lucide-react";
 
-export default function UserNav() {
+export function UserNav() {
   const { data: session } = useSession();
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  if (!session) return null;
+  // 🪄 Magie : ferme le menu si l'oiseau clique ailleurs sur l'écran
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: "/auth/login" });
+  };
+
+  if (!session?.user) return null;
+
+  const initials = session.user.name?.substring(0, 2).toUpperCase() || "ZO";
 
   return (
-    <div className="flex items-center gap-4 p-2 bg-slate-900/80 border border-emerald-500/30 rounded-full backdrop-blur-md shadow-lg shadow-emerald-900/20">
-      {/* Avatar avec ta signature unique */}
-      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-600 flex items-center justify-center text-white font-bold shadow-inner">
-        {session.user?.signature || "<(:<"}
-      </div>
+    <div className="relative" ref={menuRef}>
       
-      <div className="flex flex-col pr-4">
-        <span className="text-sm font-bold text-white leading-none">
-          {session.user?.name}
-        </span>
-        <span className="text-[10px] uppercase tracking-widest text-emerald-400 font-medium">
-          {session.user?.role || "Bâtisseur"}
-        </span>
-      </div>
-
+      {/* 🟢 Le Bouton Avatar (Trigger) */}
       <button 
-        onClick={() => signOut()}
-        className="p-2 hover:bg-red-500/20 rounded-full transition-colors text-slate-400 hover:text-red-400"
-        title="Quitter l'Îlot"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-center h-10 w-10 rounded-full border border-emerald-500/30 bg-emerald-900/50 hover:bg-emerald-500/20 text-emerald-100 font-bold tracking-wider transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/50 overflow-hidden"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        {session.user.image ? (
+          <img src={session.user.image} alt="Avatar" className="h-full w-full object-cover" />
+        ) : (
+          initials
+        )}
       </button>
+
+      {/* 🟢 Le Menu Déroulant (Dropdown) */}
+      {isOpen && (
+        <div className="absolute right-0 mt-3 w-56 rounded-xl bg-slate-900 border border-emerald-500/20 shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2">
+          
+          {/* En-tête avec les infos de l'oiseau */}
+          <div className="px-4 py-2 border-b border-slate-800">
+            <p className="text-sm font-medium text-emerald-400 truncate">
+              {session.user.name}
+            </p>
+            <p className="text-xs text-slate-500 truncate mt-0.5">
+              {session.user.email}
+            </p>
+          </div>
+
+          {/* Liens de navigation */}
+          <div className="py-1">
+            <Link 
+              href="/dashboard/profile" 
+              onClick={() => setIsOpen(false)}
+              className="flex items-center px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-emerald-400 transition-colors"
+            >
+              <User className="mr-2 h-4 w-4" />
+              Profil de l'oiseau
+            </Link>
+            <Link 
+              href="/dashboard/settings" 
+              onClick={() => setIsOpen(false)}
+              className="flex items-center px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-emerald-400 transition-colors"
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Réglages du nid
+            </Link>
+          </div>
+
+          {/* Bouton de déconnexion */}
+          <div className="border-t border-slate-800 py-1">
+            <button
+              onClick={handleSignOut}
+              className="flex w-full items-center px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors text-left"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              S'envoler (Déconnexion)
+            </button>
+          </div>
+
+        </div>
+      )}
     </div>
   );
 }
