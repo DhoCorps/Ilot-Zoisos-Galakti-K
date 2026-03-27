@@ -20,7 +20,8 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
 
   // --- ÉTATS POUR LA SUTURE DES NIDS ---
   const [availableTeams, setAvailableTeams] = useState<any[]>([]);
-  const [selectedTeamUid, setSelectedTeamUid] = useState(teamId || "");
+  // ⚡ FIX : Renommé en selectedTeamId pour une cohérence totale avec la BDD
+  const [selectedTeamId, setSelectedTeamId] = useState(teamId || "");
   const [isLoadingTeams, setIsLoadingTeams] = useState(!teamId);
 
   // Chargement des nids si aucun teamId n'est imposé
@@ -31,7 +32,7 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
           const response = await teams.getAll();
           const data = Array.isArray(response) ? response : (response as any).data || [];
           setAvailableTeams(data);
-          if (data.length > 0) setSelectedTeamUid(data[0].uid);
+          if (data.length > 0) setSelectedTeamId(data[0].uid);
         } catch (err) {
           console.error("Erreur de scan de la canopée:", err);
         } finally {
@@ -56,7 +57,7 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
       return;
     }
 
-    if (!selectedTeamUid) {
+    if (!selectedTeamId) {
       setError("Un fragment doit impérativement être rattaché à un nid.");
       setLoading(false);
       return;
@@ -71,14 +72,15 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
       slug = rawtitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
     }
 
+    // 🛡️ FIX : Payload 100% raccord avec ton Schéma Zod
     const projectData = {
       title: rawtitle,
       slug: slug,
       description: formData.get('description') as string,
       status: formData.get('status') as string,
       priority: formData.get('priority') as string,
-      teamUid: selectedTeamUid, // Liaison Neo4j & Mongo
-      ownerUid: ownerId, 
+      teamId: selectedTeamId, // 👈 Le pivot exact attendu par Zod/Mongo
+      ownerId: ownerId,       // 👈 La clé exacte attendue
     };
 
     try {
@@ -143,8 +145,8 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
                 </div>
               ) : (
                 <select
-                  value={selectedTeamUid}
-                  onChange={(e) => setSelectedTeamUid(e.target.value)}
+                  value={selectedTeamId}
+                  onChange={(e) => setSelectedTeamId(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 outline-none focus:border-red-500 appearance-none transition-all cursor-pointer font-light shadow-inner"
                 >
                   {availableTeams.length === 0 ? (
@@ -166,7 +168,7 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest ml-1">
               <Target size={14} className="text-slate-500" />
-              title du chantier *
+              Titre du chantier *
             </label>
             <input
               name="title"
@@ -208,16 +210,18 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
               <Activity size={14} className="text-slate-500" />
-              status
+              Statut
             </label>
             <select
               name="status"
+              defaultValue="PLANNED"
               className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-slate-300 outline-none focus:border-red-500 appearance-none cursor-pointer text-sm shadow-inner"
             >
-              <option value="Planifié">Planifié</option>
-              <option value="En Cours">En Cours</option>
-              <option value="En Pause">En Pause</option>
-              <option value="Terminé">Terminé</option>
+              {/* 🛡️ FIX : Valeurs ENUM strictes pour Zod */}
+              <option value="PLANNED">Planifié</option>
+              <option value="IN_PROGRESS">En Cours</option>
+              <option value="PAUSED">En Pause</option>
+              <option value="COMPLETED">Terminé</option>
             </select>
           </div>
 
@@ -228,13 +232,16 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
             </label>
             <select
               name="priority"
-              defaultValue="medium"
+              defaultValue="MEDIUM"
               className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-slate-300 outline-none focus:border-red-500 appearance-none cursor-pointer text-sm shadow-inner"
             >
-              <option value="trivial">Trivial</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
-              <option value="critical">Critical</option>
+              {/* 🛡️ FIX : Valeurs ENUM complètes et strictes */}
+              <option value="TRIVIAL">Trivial</option>
+              <option value="EASY">Facile</option>
+              <option value="MEDIUM">Moyen</option>
+              <option value="HARD">Difficile</option>
+              <option value="EXTREME">Extrême</option>
+              <option value="CRITICAL">Critique</option>
             </select>
           </div>
         </div>
