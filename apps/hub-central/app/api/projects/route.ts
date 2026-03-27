@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     // 4. Préparation des données finales (Suture owner + isArchived)
     const projectData = { 
       ...parsedData, 
-      owner: userId,      // On utilise le champ unifié "owner"
+      ownerId: userId,      // On utilise le champ unifié "owner"
       isArchived: false   // On force l'état initial
     };
 
@@ -68,7 +68,7 @@ export async function GET(req: Request) {
     }
 
     // On cherche par "owner" (ton nouveau standard)
-    const projects = await ProjectModel.find({ owner: userId })
+    const projects = await ProjectModel.find({ ownerId: userId })
       .sort({ createdAt: -1 })
       .lean();
 

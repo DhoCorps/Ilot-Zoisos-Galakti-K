@@ -13,7 +13,7 @@ const FileSchema = new Schema<IFile>({
   size: { type: Number, required: true },
   mimeType: { type: String, required: true },
   // On stocke l'UID string pour la cohérence avec Neo4j
-  owner: { type: String, required: true, index: true }, 
+  ownerId: { type: String, required: true, index: true }, 
   entityType: { 
     type: String, 
     enum: ['project', 'task', 'team'], 

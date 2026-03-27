@@ -8,7 +8,7 @@ export interface IlotFile {
   path: string;        // Chemin relatif sur le serveur (ex: "/uploads/tasks/...")
   size: number;        // Taille en octets
   mimeType: string;    // Type MIME (ex: "application/pdf")
-  owner: string;       // UID (ou ID) de l'oiseau qui a uploadé
+  ownerId: string;       // UID (ou ID) de l'oiseau qui a uploadé
   entityType: 'project' | 'task' | 'team'; // À quoi est-il rattaché ?
   entityId: string;    // L'UID/ID de l'entité rattachée
   createdAt: string | Date; 

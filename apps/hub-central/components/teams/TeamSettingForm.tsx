@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { ShieldAlert, Wind, Save, Loader2, Globe, Lock } from 'lucide-react';
 import { teams as teamsApi } from "../../lib/apiClient";
+import { ITeam } from '@ilot/types';
 
 interface TeamSettingsFormProps {
-  team: any;
+  team: ITeam;
   onUpdate?: () => void;
 }
 
@@ -21,7 +22,7 @@ export const TeamSettingsForm = ({ team, onUpdate }: TeamSettingsFormProps) => {
     try {
       const newStatus = !settings.isGlobalReducedSpeed;
       // On met à jour via l'apiClient
-      await teamsApi.update(team.uid, { 
+      await teamsApi.update(team.uid!, { 
         settings: { ...settings, isGlobalReducedSpeed: newStatus } 
       });
       setSettings({ ...settings, isGlobalReducedSpeed: newStatus });

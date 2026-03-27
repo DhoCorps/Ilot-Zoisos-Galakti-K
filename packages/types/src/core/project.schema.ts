@@ -9,7 +9,7 @@ export const ProjectSchema = BaseNodeSchema.extend({
   description: z.string().max(1000).default(''),
   
   // ⚡ SUTURE : On utilise 'owner' pour matcher le modèle Mongo
-  owner: z.string().min(1, "Le propriétaire est requis"), 
+  ownerid: z.string().min(1, "Le propriétaire est requis"), 
   
   // ⚡ SUTURE : teamId est maintenant un String (UID Neo4j)
   teamId: z.string().nullable().optional(),

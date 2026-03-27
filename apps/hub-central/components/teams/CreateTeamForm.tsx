@@ -42,8 +42,8 @@ export function CreateTeamForm({ onSuccess, parentTeamId = null }: CreateTeamFor
       const newTeam = await teams.create({
         name: formData.name,
         description: formData.description,
-        owner: userId, // On injecte le créateur
-        parent: parentTeamId, // Pour la hiérarchie des nids
+        ownerId: userId, // On injecte le créateur
+        parentId: parentTeamId, // Pour la hiérarchie des nids
         collectiveHealth: { isOverloaded: false },
         moderation: { isFlagged: false }
       });
