@@ -1,15 +1,13 @@
 import { ProjectModel } from '@ilot/infrastructure';
-import { getNeo4jDriver } from '@ilot/infrastructure';
 import { v4 as uuidv4 } from 'uuid';
 import { ICreateProject } from '@ilot/types';
+import { TransactionManager } from './transactionManager';
 
 const generateSlug = (text: string): string => {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, '')     // Enlève les caractères spéciaux
-    .replace(/[\s_-]+/g, '-')     // Remplace les espaces et underscores par des tirets
-    .replace(/^-+|-+$/g, '');     // Enlève les tirets au début et à la fin
+  return text.toLowerCase().trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 };
 
 export const ProjectOrchestrator = {
@@ -18,24 +16,22 @@ export const ProjectOrchestrator = {
     const uid = uuidv4().slice(0, 8);
     const slug = projectData.slug || generateSlug(projectData.title);
 
-    // 1. MONGO : On stocke les références techniques
-    const mongoProject = await ProjectModel.create({
-      ...projectData,
-      uid,
-      slug,
-      owner: ownerUid,
-      // On supporte le parent direct (Mongo ObjectId)
-      parent: projectData.parentId || null, 
-      teamId: projectData.teamId || null
-    });
+    return await TransactionManager.execute("Forge de Fragment", async (mongoSession, neo4jTx) => {
+      // 1. MONGO (Tableau requis pour la création en session)
+      const [mongoProject] = await ProjectModel.create([{
+        ...projectData,
+        uid,
+        slug,
+        ownerId: ownerUid, // 👈 Aligné sur l'anglais
+        parentId: projectData.parentId || null, // 👈 Aligné sur l'anglais
+        teamId: projectData.teamId || null
+      }], { session: mongoSession });
 
-    // 2. NEO4J : On tisse la toile de relations
-    const session = getNeo4jDriver().session();
-    try {
+      // 2. NEO4J
       const cypher = `
         MATCH (u:User {uid: $ownerUid})
-        OPTIONAL MATCH (t:Team {uid: $teamUid})
-        OPTIONAL MATCH (parentP:Project {uid: $parentUid})
+        OPTIONAL MATCH (t:Team {uid: $teamId})
+        OPTIONAL MATCH (parentP:Project {uid: $parentId})
         
         CREATE (p:Project {
           uid: $uid,
@@ -44,15 +40,12 @@ export const ProjectOrchestrator = {
           createdAt: datetime()
         })
         
-        // Lien de propriété
         MERGE (u)-[:OWNS_PROJECT]->(p)
         
-        // Lien avec le Nid (si présent)
         WITH p, t, parentP
         WHERE t IS NOT NULL
         MERGE (t)-[:HOSTS_PROJECT]->(p)
         
-        // LIEN FRACTAL : Le projet devient un sous-projet
         WITH p, parentP
         WHERE parentP IS NOT NULL
         MERGE (parentP)-[:PARENT_OF]->(p)
@@ -60,35 +53,30 @@ export const ProjectOrchestrator = {
         RETURN p
       `;
 
-      await session.run(cypher, {
+      await neo4jTx.run(cypher, {
         uid,
         title: projectData.title,
-        status: projectData.status || 'Planifié',
+        status: projectData.status || 'PLANNED', // 👈 Aligné sur l'anglais
         ownerUid,
         teamId: projectData.teamId || null,
-        parentId: projectData.parentId || null // Ici on passe l'UID du projet parent
+        parentId: projectData.parentId || null
       });
 
       return mongoProject;
-    } finally {
-      await session.close();
-    }
+    });
   },
+
   async updateProject(projectUid: string, updateData: any, userUid: string) {
-    // 1. Mise à jour MongoDB (Validation du propriétaire via 'owner')
-    const mongoProject = await ProjectModel.findOneAndUpdate(
-      { uid: projectUid, owner: userUid }, 
-      { $set: updateData },
-      { new: true }
-    );
+    return await TransactionManager.execute("Mutation de Fragment", async (mongoSession, neo4jTx) => {
+      const mongoProject = await ProjectModel.findOneAndUpdate(
+        { uid: projectUid, ownerId: userUid }, 
+        { $set: updateData },
+        { new: true, session: mongoSession }
+      );
 
-    if (!mongoProject) throw new Error("Fragment introuvable ou signature thermique non autorisée.");
+      if (!mongoProject) throw new Error("Fragment introuvable ou accès refusé.");
 
-    // 2. Mise à jour Neo4j (Seulement si les champs structurels changent)
-    if (updateData.title || updateData.status || updateData.priority) {
-      const driver = getNeo4jDriver();
-      const session = driver.session();
-      try {
+      if (updateData.title || updateData.status || updateData.priority) {
         const cypherUpdate = `
           MATCH (p:Project {uid: $uid})
           SET p.title = COALESCE($title, p.title),
@@ -97,46 +85,30 @@ export const ProjectOrchestrator = {
               p.updatedAt = datetime()
           RETURN p
         `;
-        await session.run(cypherUpdate, {
+        await neo4jTx.run(cypherUpdate, {
           uid: projectUid,
           title: updateData.title || null,
           status: updateData.status || null,
           priority: updateData.priority || null
         });
-      } catch (error: any) {
-        console.error("⚠️ Désynchronisation partielle du Graphe :", error);
-        // On ne rollback pas l'update Mongo ici, mais on log l'erreur
-      } finally {
-        await session.close();
       }
-    }
 
-    return mongoProject;
+      return mongoProject;
+    });
   },
 
   async deleteProject(projectUid: string, userUid: string) {
-    // 1. Suppression MongoDB
-    const deletedMongo = await ProjectModel.findOneAndDelete({ 
-      uid: projectUid, 
-      owner: userUid 
+    return await TransactionManager.execute("Destruction de Fragment", async (mongoSession, neo4jTx) => {
+      const deletedMongo = await ProjectModel.findOneAndDelete(
+        { uid: projectUid, ownerId: userUid }, 
+        { session: mongoSession }
+      );
+
+      if (!deletedMongo) throw new Error("Destruction impossible ou accès refusé.");
+
+      await neo4jTx.run(`MATCH (p:Project {uid: $uid}) DETACH DELETE p`, { uid: projectUid });
+
+      return deletedMongo;
     });
-
-    if (!deletedMongo) throw new Error("Destruction impossible : fragment inexistant ou accès refusé.");
-
-    // 2. Destruction en cascade Neo4j
-    const driver = getNeo4jDriver();
-    const session = driver.session();
-    try {
-      const cypherDelete = `
-        MATCH (p:Project {uid: $uid})
-        DETACH DELETE p
-      `;
-      await session.run(cypherDelete, { uid: projectUid });
-    } catch (error: any) {
-      console.error("💥 Résistance du Graphe à la suppression :", error);
-      throw new Error("Erreur de désynchronisation : le fragment survit dans Neo4j.");
-    } finally {
-      await session.close();
-    }
   }
 };

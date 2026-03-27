@@ -1,5 +1,6 @@
-import { ProjectModel, TeamModel, getNeo4jDriver } from '@ilot/infrastructure';
+import { ProjectModel, TeamModel } from '@ilot/infrastructure';
 import { Types } from 'mongoose';
+import { TransactionManager } from './transactionManager';
 
 export const HealthOrchestrator = {
   /**
@@ -8,63 +9,62 @@ export const HealthOrchestrator = {
   async syncTeamHealth(teamId: Types.ObjectId | string) {
     const teamObjectId = typeof teamId === 'string' ? new Types.ObjectId(teamId) : teamId;
 
-    // 1. Agrégation des données de stress dans MongoDB
-    const stats = await ProjectModel.aggregate([
-      { 
-        $match: { 
-          teamId: teamObjectId.toString(), // On matche l'UID string stocké dans Project
-          isArchived: false 
-        } 
-      },
-      { 
-        $group: {
-          _id: "$teamId",
-          averageStress: { $avg: "$wellbeing.globalStressLevel" },
-          projectCount: { $sum: 1 }
+    return await TransactionManager.execute("Synchronisation Biométrique", async (mongoSession, neo4jTx) => {
+      // 1. Agrégation (Pas besoin de session pour la lecture)
+      const stats = await ProjectModel.aggregate([
+        { 
+          $match: { 
+            teamId: teamObjectId.toString(),
+            isArchived: false 
+          } 
+        },
+        { 
+          $group: {
+            _id: "$teamId",
+            averageStress: { $avg: "$wellbeing.globalStressLevel" },
+            projectCount: { $sum: 1 }
+          }
         }
-      }
-    ]);
+      ]);
 
-    const result = stats[0] || { averageStress: 0, projectCount: 0 };
-    const load = Math.round(result.averageStress);
-    
-    // 🛡️ SÉCURITÉ : Activation automatique de la Vitesse Réduite si charge > 90%
-    let isGlobalReducedSpeed = false;
-    if (load > 90) {
-      isGlobalReducedSpeed = true;
-      await ProjectModel.updateMany(
-        { teamId: teamObjectId.toString(), isArchived: false },
+      const result = stats[0] || { averageStress: 0, projectCount: 0 };
+      const load = Math.round(result.averageStress);
+      
+      // 🛡️ SÉCURITÉ : Vitesse Réduite globale si charge > 90%
+      let isGlobalReducedSpeed = false;
+      if (load > 90) {
+        isGlobalReducedSpeed = true;
+        await ProjectModel.updateMany(
+          { teamId: teamObjectId.toString(), isArchived: false },
+          { 
+            $set: { 
+              "wellbeing.isAtReducedSpeed": true,
+              status: 'REDUCED_SPEED' // 👈 Aligné sur l'anglais
+            } 
+          },
+          { session: mongoSession } // 👈 Sceau
+        );
+      }
+
+      const isOverloaded = load > 75 || result.projectCount > 10;
+
+      // 2. Mise à jour de MongoDB
+      const updatedTeam = await TeamModel.findByIdAndUpdate(
+        teamObjectId,
         { 
           $set: { 
-            "wellbeing.isAtReducedSpeed": true,
-            status: 'Vitesse Réduite' 
+            "collectiveHealth.averageMentalLoad": load,
+            "collectiveHealth.isOverloaded": isOverloaded,
+            "settings.isGlobalReducedSpeed": isGlobalReducedSpeed
           } 
-        }
+        },
+        { new: true, session: mongoSession } // 👈 Sceau
       );
-    }
 
-    // Détermination de la surcharge
-    const isOverloaded = load > 75 || result.projectCount > 10;
+      if (!updatedTeam) return;
 
-    // 2. Mise à jour de MongoDB (Source de vérité biométrique)
-    const updatedTeam = await TeamModel.findByIdAndUpdate(
-      teamObjectId,
-      { 
-        $set: { 
-          "collectiveHealth.averageMentalLoad": load,
-          "collectiveHealth.isOverloaded": isOverloaded,
-          "settings.isGlobalReducedSpeed": isGlobalReducedSpeed // 👈 Mise à jour des réglages
-        } 
-      },
-      { new: true }
-    );
-
-    if (!updatedTeam) return;
-
-    // 3. Synchronisation Neo4j (Visualisation de la température du Graphe)
-    const session = getNeo4jDriver().session();
-    try {
-      await session.run(`
+      // 3. Synchronisation Neo4j
+      await neo4jTx.run(`
         MATCH (t:Team {uid: $uid})
         SET t.averageMentalLoad = $load,
             t.isOverloaded = $isOverloaded,
@@ -76,10 +76,8 @@ export const HealthOrchestrator = {
         isOverloaded: isOverloaded,
         isGlobalReducedSpeed: isGlobalReducedSpeed
       });
-    } finally {
-      await session.close();
-    }
 
-    return updatedTeam;
+      return updatedTeam;
+    });
   }
 };

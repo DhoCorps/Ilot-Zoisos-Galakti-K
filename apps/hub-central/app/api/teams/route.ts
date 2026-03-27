@@ -60,7 +60,7 @@ export async function POST(req: Request) {
       description: body.description,
       creatorUid: userDoc.uid,      // UID pour Neo4j
       creatorId: userDoc._id,       // _id pour MongoDB (très important !)
-      parentUid: body.parentUid || null,
+      parentId: body.parentId || null,
       settings: body.settings || { isPrivate: false, allowSearch: true }
     });
 
