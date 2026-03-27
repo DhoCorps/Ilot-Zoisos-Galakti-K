@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BaseNodeSchema, statusProjectSchema, PriorityLevelSchema } from '../models/common.types';
+import { BaseNodeSchema, ProjectStatusSchema, ProjectPrioritySchema } from '../models/common.types';
 
 export const ProjectSchema = BaseNodeSchema.extend({
   title: z.string()
@@ -14,8 +14,8 @@ export const ProjectSchema = BaseNodeSchema.extend({
   // ⚡ SUTURE : teamId est maintenant un String (UID Neo4j)
   teamId: z.string().nullable().optional(),
   
-  status: statusProjectSchema.default('Planifié'),
-  priority: PriorityLevelSchema.default('medium'),
+  status: ProjectStatusSchema.default('PLANNED'),
+  priority: ProjectPrioritySchema.default('MEDIUM'),
   isArchived: z.boolean().default(false),
   
   // 📈 BIOMÉTRIE : Intégration de la santé du fragment

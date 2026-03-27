@@ -42,8 +42,8 @@ const TeamSchema = new Schema<ITeam>(
     description: { type: String },
     avatarUrl: { type: String, default: '' },
     
-    parentId: { type: String, default: null }, // 👈
-    ownerId: { type: String, required: true }, // 👈
+    parentId: { type: String, default: null, index : true }, // 👈
+    ownerId: { type: String, required: true, index: true }, // 👈
     leaderId: { type: String }, // 👈
 
     moderation: {

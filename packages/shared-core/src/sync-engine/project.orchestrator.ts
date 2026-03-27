@@ -25,8 +25,8 @@ export const ProjectOrchestrator = {
       slug,
       owner: ownerUid,
       // On supporte le parent direct (Mongo ObjectId)
-      parent: projectData.parent || null, 
-      teamId: projectData.teamUid || null
+      parent: projectData.parentId || null, 
+      teamId: projectData.teamId || null
     });
 
     // 2. NEO4J : On tisse la toile de relations
@@ -65,8 +65,8 @@ export const ProjectOrchestrator = {
         title: projectData.title,
         status: projectData.status || 'Planifié',
         ownerUid,
-        teamUid: projectData.teamUid || null,
-        parentUid: projectData.parent || null // Ici on passe l'UID du projet parent
+        teamId: projectData.teamId || null,
+        parentId: projectData.parentId || null // Ici on passe l'UID du projet parent
       });
 
       return mongoProject;

@@ -20,36 +20,30 @@ export const seedFractalGarden = async (userUid: string) => {
 
     // 3. Injection du Projet Racine (La première Orchidée)
    // ✅ NOUVEL APPEL (Suturé)
-const projetRacine = await ProjectOrchestrator.createProject({
-  title: "Projet Racine Fractal",
-  slug: "racine-fractale",
-  description: "L'origine de la structure",
-  status: "IN_PROGRESS",
-  priority: "MEDIUM",
-  teamId: "alpha-123",
-  ownerId: userUid,      // 1. On injecte l'owner ici
-  isArchived: false    // 2. On définit la valeur par défaut
-}, userUid);
+  const projetRacine = await ProjectOrchestrator.createProject({
+    title: "Projet Racine Fractal",
+    slug: "projet-racine",
+    description: "Ceci est la graine du monde.",
+    status: "IN_PROGRESS", // 👈 Traduit
+    priority: "MEDIUM",
+    teamId: nidAlpha.uid,
+    ownerId: userUid, // 👈 Traduit (au lieu de owner)
+    isArchived: false,
+    wellbeing: { globalStressLevel: 0, isAtReducedSpeed: false } // 👈 Ajouté
+  }, userUid);
 
-    console.log("✅ Projet Racine injecté :", projetRacine.uid);
-
-    // 4. Injection du Sous-Projet (L'Oridée Vanda suspendue)
-    // C'est ici que la récursion opère via la propriété 'parent'
-   // ✅ Appel corrigé pour le sous-projet
-const sousProjet = await ProjectOrchestrator.createProject({
+  const sousProjet = await ProjectOrchestrator.createProject({
     title: "Sous-Projet Suspendu",
-    slug: "vanda-suspendue",
-    description: "Je dépends de la racine",
-    status: "PLANNED",
-    priority: "HARD", // "high" est bien dans l'enum, donc c'est OK
-    teamId: "alpha-123",
-    parentId: projetRacine.uid,
-    
-    // 💉 LES DEUX COMPOSANTS MANQUANTS :
-    ownerId: userUid,      // Indispensable : qui a planté cette orchidée ?
-    isArchived: false    // Indispensable : le fragment est-il actif ?
-    }, userUid);
-
+    slug: "sous-projet",
+    description: "Un fragment en attente.",
+    status: "PLANNED", // 👈 Traduit
+    priority: "HARD",
+    teamId: nidAlpha.uid,
+    parentId: projetRacine.uid, // 👈 Traduit (au lieu de parent)
+    ownerId: userUid, // 👈 Traduit
+    isArchived: false,
+    wellbeing: { globalStressLevel: 0, isAtReducedSpeed: false } // 👈 Ajouté
+  }, userUid);
     console.log("✅ Sous-projet rattaché avec succès :", sousProjet.uid);
     
     return { success: true, message: "Le champ de pommes de terre est devenu une jungle." };

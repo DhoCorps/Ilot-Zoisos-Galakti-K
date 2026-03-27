@@ -44,14 +44,14 @@ export async function POST(request: Request) {
       title: projectData.title,
       status: projectData.status,
       priority: projectData.priority,
-      owner: projectData.owner
+      owner: projectData.ownerId
     };
 
     // La session s'ouvre et se ferme proprement dans cette fonction (évite le bug de fuite de mémoire)
     await writeToGraph(cypherNode, nodeParams);
 
     // 🌿 5. GESTION DE LA HIÉRARCHIE (Si le projet a un parent)
-    if (projectData.parent) {
+    if (projectData.parentId) {
       const cypherRelation = `
         MATCH (child:Project { uid: $childUid })
         MATCH (parent:Project { uid: $parentUid })
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       `;
       await writeToGraph(cypherRelation, { 
         childUid: projectUid, 
-        parentUid: projectData.parent 
+        parentUid: projectData.parentId 
       });
     }
 

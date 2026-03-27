@@ -1,5 +1,5 @@
 import { IUser } from './user.types'; 
-import { UserRole } from './roles.types';
+import { UserRole } from './role.types';
 
 export interface IAuthOptions {
   providers: any[]; 

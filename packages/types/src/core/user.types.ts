@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { UserRole } from './roles.types';
+import { UserRole } from './role.types';
 
 /**
  * 🛡️ USER SCHEMA (Zod) - La Source de Vérité

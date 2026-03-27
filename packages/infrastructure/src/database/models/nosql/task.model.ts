@@ -95,8 +95,8 @@ const TaskSchema = new Schema<ITaskDocument>({
   // --- MODULES SPÉCIFIQUES ---
  priority: {
   type: String,
-  enum: ["medium", "critical", "trivial", "easy", "hard", "extreme"], 
-      default: "medium",                    // 👈 On remplace "medium" par "MOYENNE"
+  enum: ['TRIVIAL', 'EASY', 'MEDIUM', 'HARD', 'EXTREME', 'CRITICAL'], 
+      default: "MEDIUM",                
   },
   wellbeing: {
     stressImpact: { type: Number, default: 0, min: 0, max: 100 },

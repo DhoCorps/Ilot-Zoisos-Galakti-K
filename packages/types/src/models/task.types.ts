@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BaseNodeSchema, PriorityLevelSchema, ComplexityLevelSchema } from './common.types';
+import { BaseNodeSchema, ProjectPrioritySchema, ComplexityLevelSchema } from './common.types';
 
 /**
  * 🍂 TASK SCHEMA (La Brindille)
@@ -20,7 +20,7 @@ export const TaskSchema = BaseNodeSchema.extend({
   assignees: z.array(z.string().uuid()).default([]), 
   
   // Métadonnées de gestion
-  priority: PriorityLevelSchema.default('medium'),
+  priority: ProjectPrioritySchema.default('MEDIUM'),
   complexity: ComplexityLevelSchema.default(1),
   
   // ID du status (référence au schéma de status du projet)

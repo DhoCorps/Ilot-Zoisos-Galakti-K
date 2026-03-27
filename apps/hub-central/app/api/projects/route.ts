@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     
     // 3. Validation Zod
     // On retire "owner" de la validation car on va l'injecter nous-mêmes par sécurité
-    const validationSchema = CreateProjectSchema.omit({ owner: true });
+    const validationSchema = CreateProjectSchema.omit({ ownerId: true });
     const parsedData = validationSchema.parse(body);
 
     // 4. Préparation des données finales (Suture owner + isArchived)
