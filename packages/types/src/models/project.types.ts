@@ -1,30 +1,28 @@
 import { z } from 'zod';
-import { BaseNodeSchema, StatutProjectSchema, PriorityLevelSchema } from './common.types';
+import { BaseNodeSchema, ProjectStatusSchema, ProjectPrioritySchema } from './common.types';
 
 /**
  * 🛰️ SCHÉMA GLOBAL DU PROJET
- * Aligné sur la santé de l'Îlot Zoizos
+ * Aligné sur la santé de l'Îlot Zoizos (100% Anglais)
  */
 export const ProjectSchema = BaseNodeSchema.extend({
-  titre: z.string()
-    .min(3, "Le titre du chantier doit contenir au moins 3 caractères")
-    .max(100, "Titre trop long"),
+  title: z.string() // 👈 Ex-title
+    .min(3, "Le title du chantier doit contenir au moins 3 caractères")
+    .max(100, "title trop long"),
   slug: z.string()
     .min(3)
     .regex(/^[a-z0-9-]+$/, "Le slug doit être au format url-friendly"),
   description: z.string().max(1000).default(''),
   
-  // ⚡ SUTURE : On utilise 'owner' (UID String) pour la cohérence Graphe/Mongo
-  owner: z.string().min(1, "L'UID du propriétaire est requis"),
-  
-  // ⚡ SUTURE : teamId est le pivot vers le Nid (Team)
+  // ⚡ SUTURE : Nouveaux pivots
+  ownerId: z.string().min(1, "L'UID du propriétaire est requis"), // 👈 Ex-owner
   teamId: z.string().nullable().optional(),
+  parentId: z.string().nullable().optional(), // 👈 Ex-parent
   
-  statut: StatutProjectSchema.default('Planifié'),
-  priority: PriorityLevelSchema.default('medium'), // 👈 Utilise l'échelle trivial -> critical
+  status: ProjectStatusSchema.default('PLANNED'), // 👈 Ex-status
+  priority: ProjectPrioritySchema.default('MEDIUM'), // 👈 Ex-priority
   
   isArchived: z.boolean().default(false),
-  parent: z.string().nullable().optional(),
 
   // 📈 BIOMÉTRIE : Intégration de la santé du fragment
   wellbeing: z.object({
@@ -37,7 +35,6 @@ export type IProject = z.infer<typeof ProjectSchema>;
 
 /**
  * 🏗️ SCHÉMA DE CRÉATION
- * On omet les IDs et dates générés par le serveur
  */
 export const CreateProjectSchema = ProjectSchema.omit({
   _id: true,
@@ -45,7 +42,7 @@ export const CreateProjectSchema = ProjectSchema.omit({
   createdAt: true,
   updatedAt: true,
 }).extend({
-  owner: z.string().optional(), // Souvent injecté par la session côté serveur
+  ownerId: z.string().optional(), // 👈 Ex-owner
 });
 
 export type ICreateProject = z.infer<typeof CreateProjectSchema>;

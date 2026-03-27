@@ -14,7 +14,7 @@ export const baguerOiseau = async (user: {
       u.username = $username,
       u.role = $role,
       u.dateArrivee = datetime(),
-      u.statut = 'Libre'
+      u.status = 'Libre'
     RETURN u
   `;
 

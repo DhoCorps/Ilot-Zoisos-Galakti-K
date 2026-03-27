@@ -13,7 +13,7 @@ export const ProjectSpeedToggle = ({ project }: { project: any }) => {
     try {
       await projectsApi.update(project.uid, {
         wellbeing: { ...project.wellbeing, isAtReducedSpeed: !isAtReducedSpeed },
-        statut: !isAtReducedSpeed ? 'Vitesse Réduite' : 'En Cours'
+        status: !isAtReducedSpeed ? 'Vitesse Réduite' : 'En Cours'
       });
       // Rafraîchir ici via router.refresh() ou un context
     } finally {

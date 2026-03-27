@@ -3,10 +3,10 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ICandidate extends Document {
   uid: string;
-  nom: string;
+  name: string;
   email: string;
   poste: string;
-  statut: 'nouveau' | 'entretien' | 'accepté' | 'refusé';
+  status: 'nouveau' | 'entretien' | 'accepté' | 'refusé';
   cvUrl?: string;
   notes?: string;
   createdAt: Date;
@@ -17,7 +17,7 @@ const CandidateSchema = new Schema({
   nom: { type: String, required: true },
   email: { type: String, required: true },
   poste: { type: String, required: true },
-  statut: { type: String, default: 'nouveau' },
+  status: { type: String, default: 'nouveau' },
   cvUrl: { type: String },
   notes: { type: String },
   createdAt: { type: Date, default: Date.now }

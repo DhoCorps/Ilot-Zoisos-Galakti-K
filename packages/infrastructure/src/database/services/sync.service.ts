@@ -79,15 +79,15 @@ export const inviteMember = async (teamUid: string, userEmail: string, initialCa
  */
 export const updateProjectSync = async (uid: string, data: any) => {
   try {
-    const finalTitre = data.titre || data.nom; // On sécurise la bascule
+    const finaltitle = data.title || data.name; // On sécurise la bascule
 
     // 1. Mise à jour MongoDB
     const updatedMongo = await ProjectModel.findOneAndUpdate(
       { uid: uid },
       { $set: { 
-          titre: finalTitre, 
+          title: finaltitle, 
           description: data.description,
-          statut: data.statut 
+          status: data.status 
         } 
       },
       { new: true }
@@ -95,13 +95,13 @@ export const updateProjectSync = async (uid: string, data: any) => {
 
     if (!updatedMongo) throw new Error("Projet introuvable dans MongoDB.");
 
-    // 2. Mise à jour Neo4j (👈 BUG 2 CORRIGÉ : On utilise 'titre')
+    // 2. Mise à jour Neo4j (👈 BUG 2 CORRIGÉ : On utilise 'title')
     const cypher = `
       MATCH (p:Project {uid: $uid})
-      SET p.titre = $titre, p.updatedAt = datetime()
+      SET p.title = $title, p.updatedAt = datetime()
       RETURN p
     `;
-    await runQuery(cypher, { uid: uid, titre: finalTitre });
+    await runQuery(cypher, { uid: uid, title: finaltitle });
 
     return updatedMongo;
   } catch (error: any) {

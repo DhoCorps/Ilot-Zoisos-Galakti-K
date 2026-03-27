@@ -34,7 +34,7 @@ export const PermissionForm = ({ selectedCaps, onToggleCapability }: PermissionF
         {Object.values(POWER_LEVELS).map((group: PowerLevelGroup) => (
           <div key={group.id} className="relative">
             
-            {/* Titre du groupe de permissions */}
+            {/* title du groupe de permissions */}
             <div className="mb-5 flex items-center gap-3">
               <span className="h-px w-8 bg-slate-800"></span>
               <div>

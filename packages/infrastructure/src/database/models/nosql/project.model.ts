@@ -6,24 +6,27 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export interface IProjectDocument extends Document {
   uid: string;
-  titre: string;
+  title: string; // 👈
   slug: string;
   description?: string;
   coverUrl?: string;
-  dateDebut?: Date;
-  dateFinEstimee?: Date;
-  dateCloture?: Date;
+  startDate?: Date; // 👈
+  estimatedEndDate?: Date; // 👈
+  closedAt?: Date; // 👈
   deadline?: Date; 
-  // ⚡ SUTURE : Aligné sur StatutProjectSchema
-  statut: 'Planifié' | 'En Cours' | 'Terminé' | 'En Pause' | 'Vitesse Réduite';
-  priority: 'trivial' | 'easy' | 'medium' | 'hard' | 'extreme' | 'critical';
+  
+  // ⚡ TRADUCTION DES ÉTATS ET PRIORITÉS
+  status: 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'PAUSED' | 'REDUCED_SPEED';
+  priority: 'TRIVIAL' | 'EASY' | 'MEDIUM' | 'HARD' | 'EXTREME' | 'CRITICAL';
+  
   wellbeing: {
     globalStressLevel: number;
     isAtReducedSpeed: boolean;
   };
-  tags: Types.ObjectId[];
-  owner: string; 
-  parent?: Types.ObjectId | null; 
+  
+  tags: string[]; // 👈 En String pour la flexibilité
+  ownerId: string; // 👈 Cohérence avec Team
+  parentId?: string | null; // 👈 En String
   progress: number;
   isArchived: boolean;
   
@@ -31,7 +34,7 @@ export interface IProjectDocument extends Document {
     isFlagged: boolean;
   };
   
-  teamId?: string | null; // ⚡ Pivot UID Neo4j
+  teamId?: string | null; 
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,42 +44,33 @@ export interface IProjectDocument extends Document {
  */
 const ProjectSchema = new Schema<IProjectDocument>(
   {
-    uid: { 
-      type: String, 
-      required: true, 
-      unique: true, 
-      default: () => uuidv4().slice(0, 8), 
-      index: true 
-    },
-    titre: { type: String, required: [true, "Le titre est requis"], trim: true },
+    uid: { type: String, required: true, unique: true, default: () => uuidv4().slice(0, 8), index: true },
+    title: { type: String, required: [true, "Title is required"], trim: true }, // 👈
     slug: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
     description: { type: String, trim: true },
     coverUrl: { type: String, default: '' }, 
-    dateDebut: { type: Date, default: Date.now },
-    dateFinEstimee: { type: Date },
-    dateCloture: { type: Date },
+    startDate: { type: Date, default: Date.now }, // 👈
+    estimatedEndDate: { type: Date }, // 👈
+    closedAt: { type: Date }, // 👈
     deadline: { type: Date },
 
-    statut: { 
+    status: { 
       type: String, 
-      // ⚡ Validation stricte des statuts de l'Îlot
-      enum: ['Planifié', 'En Cours', 'Terminé', 'En Pause', 'Vitesse Réduite'], 
-      default: 'Planifié' 
+      enum: ['PLANNED', 'IN_PROGRESS', 'COMPLETED', 'PAUSED', 'REDUCED_SPEED'], 
+      default: 'PLANNED' 
     },
     priority: { 
       type: String, 
-      // ⚡ Échelle de priorité Galakti-K
-      enum: ['trivial', 'easy', 'medium', 'hard', 'extreme', 'critical'], 
-      default: 'medium' 
+      enum: ['TRIVIAL', 'EASY', 'MEDIUM', 'HARD', 'EXTREME', 'CRITICAL'], 
+      default: 'MEDIUM' 
     },
-    tags: [{ type: Schema.Types.ObjectId, ref: 'Tag' }],
-
-    owner: { type: String, required: true, index: true },
     
-    // ⚡ SUTURE : On utilise String pour matcher l'UID Neo4j et faciliter la synchro
-    teamId: { type: String, default: null, index: true }, 
+    tags: [{ type: String }], // 👈
 
-    parent: { type: Schema.Types.ObjectId, ref: 'Project', default: null },
+    ownerId: { type: String, required: true, index: true }, // 👈
+    teamId: { type: String, default: null, index: true }, 
+    parentId: { type: String, default: null }, // 👈
+    
     progress: { type: Number, default: 0, min: 0, max: 100 },
     isArchived: { type: Boolean, default: false },
 

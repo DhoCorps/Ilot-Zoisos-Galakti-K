@@ -4,9 +4,9 @@ import { ITask } from "@ilot/types";
 
 // ⚡ LA MAGIE EST ICI : On adapte Task pour la base de données
 // On "Omit" les champs de l'interface pure qui entrent en conflit avec les références MongoDB
-export interface ITaskDocument extends Omit<ITask, 'projetUid' | 'statut' | 'assignees' | '_id' | 'id'>, Document {
+export interface ITaskDocument extends Omit<ITask, 'projetUid' | 'status' | 'assignees' | '_id' | 'id'>, Document {
   projet: Types.ObjectId;
-  statut: Types.ObjectId;
+  status: Types.ObjectId;
   assignees: Types.ObjectId[];
   reporter: Types.ObjectId;
   tags: Types.ObjectId[];
@@ -37,9 +37,9 @@ const TaskSchema = new Schema<ITaskDocument>({
     index: true 
   },
 
-  titre: { 
+  title: { 
     type: String, 
-    required: [true, "Le titre est obligatoire"], 
+    required: [true, "Le title est obligatoire"], 
     trim: true 
   },
   description: { 
@@ -58,7 +58,7 @@ const TaskSchema = new Schema<ITaskDocument>({
   timeSpent: { type: Number, default: 0, min: 0 },
 
   // --- CLASSIFICATION ---
-  statut: { 
+  status: { 
     type: Schema.Types.ObjectId, 
     ref: 'Status', 
     required: true, 

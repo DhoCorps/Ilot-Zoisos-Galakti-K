@@ -92,18 +92,18 @@ export default function ProjectDetailsPage() {
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-3">
               <span className={`px-2.5 py-1 rounded-sm text-[10px] font-bold uppercase tracking-widest border ${
-                  project.statut === 'En Cours' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
-                  project.statut === 'Bloqué' || project.statut === 'En Pause' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
+                  project.status === 'En Cours' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
+                  project.status === 'Bloqué' || project.status === 'En Pause' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
                   'bg-slate-800/50 text-slate-400 border-slate-700'
                 }`}>
-                {project.statut}
+                {project.status}
               </span>
               <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest border-l border-slate-700 pl-3">
                 Priorité : <span className={project.priority === 'critical' || project.priority === 'hard' ? 'text-rose-400' : 'text-slate-300'}>{project.priority}</span>
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-slate-100 tracking-tight">
-              {project.titre}
+              {project.title}
             </h1>
             <p className="text-slate-500 mt-2 font-mono text-xs uppercase tracking-widest">
               ID: {project.uid}

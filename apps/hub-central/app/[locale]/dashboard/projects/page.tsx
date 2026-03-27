@@ -68,11 +68,11 @@ export default function ProjectsListPage() {
             >
               <div className="flex justify-between items-start mb-4 relative z-10">
                 <div className={`px-2.5 py-1 rounded-sm text-[9px] font-bold uppercase tracking-widest border ${
-                  project.statut === 'En Cours' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
-                  project.statut === 'Bloqué' || project.statut === 'En Pause' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
+                  project.status === 'En Cours' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
+                  project.status === 'Bloqué' || project.status === 'En Pause' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
                   'bg-slate-800/50 text-slate-400 border-slate-700'
                 }`}>
-                  {project.statut}
+                  {project.status}
                 </div>
                 {project.wellbeing?.isAtReducedSpeed && (
                   <div className="text-amber-500/80 animate-pulse" title="Vitesse réduite activée">
@@ -82,7 +82,7 @@ export default function ProjectsListPage() {
               </div>
               
               <h2 className="font-bold text-xl text-slate-200 group-hover:text-red-400 transition-colors duration-500 mb-2 line-clamp-1 relative z-10">
-                {project.titre}
+                {project.title}
               </h2>
               
               <p className="text-sm text-slate-500 font-light line-clamp-2 flex-grow mb-6 relative z-10 group-hover:text-slate-400 transition-colors">

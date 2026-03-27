@@ -76,7 +76,7 @@ export default function TeamsListPage() {
               </div>
               
               <h2 className="font-bold text-xl text-slate-200 group-hover:text-red-400 transition-colors duration-500 mb-2 line-clamp-1 relative z-10">
-                {team.nom}
+                {team.name}
               </h2>
               
               <p className="text-sm text-slate-500 font-light line-clamp-2 flex-grow mb-6 relative z-10 group-hover:text-slate-400 transition-colors">

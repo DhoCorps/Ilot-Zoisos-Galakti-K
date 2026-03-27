@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { BaseNodeSchema, StatutProjectSchema, PriorityLevelSchema } from '../models/common.types';
+import { BaseNodeSchema, statusProjectSchema, PriorityLevelSchema } from '../models/common.types';
 
 export const ProjectSchema = BaseNodeSchema.extend({
-  titre: z.string()
-    .min(3, "Le titre du chantier doit contenir au moins 3 caractères")
-    .max(100, "Titre trop long"),
+  title: z.string()
+    .min(3, "Le title du chantier doit contenir au moins 3 caractères")
+    .max(100, "title trop long"),
   slug: z.string().min(3).regex(/^[a-z0-9-]+$/, "Le slug doit être au format url-friendly"),
   description: z.string().max(1000).default(''),
   
@@ -14,7 +14,7 @@ export const ProjectSchema = BaseNodeSchema.extend({
   // ⚡ SUTURE : teamId est maintenant un String (UID Neo4j)
   teamId: z.string().nullable().optional(),
   
-  statut: StatutProjectSchema.default('Planifié'),
+  status: statusProjectSchema.default('Planifié'),
   priority: PriorityLevelSchema.default('medium'),
   isArchived: z.boolean().default(false),
   

@@ -11,7 +11,7 @@ export const seedFractalGarden = async (userUid: string) => {
 
     // 2. Création du Nid Parent (L'Arbre)
     const nidAlpha = await TeamModel.create({
-      nom: "Nid Alpha",
+      name: "Nid Alpha",
       createur: user._id,
       uid: "alpha-123", // On force les UIDs pour le test
       collectiveHealth: { isOverloaded: false },
@@ -21,13 +21,13 @@ export const seedFractalGarden = async (userUid: string) => {
     // 3. Injection du Projet Racine (La première Orchidée)
    // ✅ NOUVEL APPEL (Suturé)
 const projetRacine = await ProjectOrchestrator.createProject({
-  titre: "Projet Racine Fractal",
+  title: "Projet Racine Fractal",
   slug: "racine-fractale",
   description: "L'origine de la structure",
-  statut: "En Cours",
-  priority: "medium",
-  teamUid: "alpha-123",
-  owner: userUid,      // 1. On injecte l'owner ici
+  status: "IN_PROGRESS",
+  priority: "MEDIUM",
+  teamId: "alpha-123",
+  ownerId: userUid,      // 1. On injecte l'owner ici
   isArchived: false    // 2. On définit la valeur par défaut
 }, userUid);
 
@@ -37,16 +37,16 @@ const projetRacine = await ProjectOrchestrator.createProject({
     // C'est ici que la récursion opère via la propriété 'parent'
    // ✅ Appel corrigé pour le sous-projet
 const sousProjet = await ProjectOrchestrator.createProject({
-    titre: "Sous-Projet Suspendu",
+    title: "Sous-Projet Suspendu",
     slug: "vanda-suspendue",
     description: "Je dépends de la racine",
-    statut: "Planifié",
-    priority: "high", // "high" est bien dans l'enum, donc c'est OK
-    teamUid: "alpha-123",
-    parent: projetRacine.uid,
+    status: "PLANNED",
+    priority: "HARD", // "high" est bien dans l'enum, donc c'est OK
+    teamId: "alpha-123",
+    parentId: projetRacine.uid,
     
     // 💉 LES DEUX COMPOSANTS MANQUANTS :
-    owner: userUid,      // Indispensable : qui a planté cette orchidée ?
+    ownerId: userUid,      // Indispensable : qui a planté cette orchidée ?
     isArchived: false    // Indispensable : le fragment est-il actif ?
     }, userUid);
 

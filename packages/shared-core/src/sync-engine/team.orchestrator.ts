@@ -40,14 +40,14 @@ export class TeamOrchestrator {
    * 🏗️ FONDE UNE ESCOUADE (Gère les équipes d'équipes et l'auto-réparation)
    */
   static async fosterTeam(teamData: { 
-    nom: string, 
+    name: string, 
     creatorUid: string, 
     creatorId: any, // 👈 Ajoute cette ligne (tu peux mettre Types.ObjectId si tu as importé de mongoose)
     description?: string,
     parentUid?: string,
     settings?: any // 👈 Ajoute aussi ceci pour être tranquille avec les réglages
 }) {
-    const check = MoralChecker.analyze(teamData.nom);
+    const check = MoralChecker.analyze(teamData.name);
     if (!check.isSafe) throw new Error(`Nom invalide : ${check.suggestion}`);
 
     // 1. Validation de l'existence du créateur dans Mongo
@@ -63,7 +63,7 @@ export class TeamOrchestrator {
 
     // 2. Création Mongo
     const newTeam = await TeamModel.create({
-      nom: teamData.nom,
+      name: teamData.name,
       description: teamData.description,
       createur: createur._id,
       leader: createur._id,
@@ -77,7 +77,7 @@ export class TeamOrchestrator {
       const cypher = `
         MERGE (u:Oiseau { uid: $creatorUid })
         MERGE (t:Team { uid: $teamUid })
-        ON CREATE SET t.nom = $nom, t.createdAt = datetime()
+        ON CREATE SET t.name = $name, t.createdAt = datetime()
         MERGE (u)-[r:MEMBER_OF { role: 'ADMIN' }]->(t)
         ON CREATE SET r.since = datetime()
         WITH t
@@ -94,7 +94,7 @@ export class TeamOrchestrator {
       await session.run(cypher, {
         creatorUid: teamData.creatorUid,
         teamUid: newTeam.uid, // On utilise bien l'UUID
-        nom: newTeam.nom,
+        name: newTeam.name,
         parentUid: teamData.parentUid || null
       });
     } catch (neoError) {
@@ -185,8 +185,8 @@ export class TeamOrchestrator {
    * 🔄 PUT : Mutation du nid (Synchronisée Mongo/Neo4j)
    */
   static async mutateTeam(teamUid: string, data: Partial<ITeam>) {
-    if (data.nom) {
-      const check = MoralChecker.analyze(data.nom);
+    if (data.name) {
+      const check = MoralChecker.analyze(data.name);
       if (!check.isSafe) throw new Error(`Nom invalide : ${check.suggestion}`);
     }
 
@@ -200,12 +200,12 @@ export class TeamOrchestrator {
     if (!updatedTeam) throw new Error("Nid introuvable pour la mutation.");
 
     // Si le nom a changé, on synchronise Neo4j
-    if (data.nom) {
+    if (data.name) {
       const session = getNeo4jSession();
       try {
         await session.run(
-          `MATCH (t:Team {uid: $teamUid}) SET t.nom = $nom`, 
-          { teamUid, nom: data.nom }
+          `MATCH (t:Team {uid: $teamUid}) SET t.name = $name`, 
+          { teamUid, name: data.name }
         );
       } finally {
         await session.close();

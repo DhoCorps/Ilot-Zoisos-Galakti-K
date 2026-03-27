@@ -31,8 +31,8 @@ export async function POST(request: Request) {
     // Utilisation de MERGE au lieu de CREATE pour éviter la duplication des nœuds si la route est appelée deux fois.
     const cypherNode = `
       MERGE (p:Project { uid: $uid })
-      SET p.titre = $titre,
-          p.statut = $statut,
+      SET p.title = $title,
+          p.status = $status,
           p.priority = $priority,
           p.ownerUid = $ownerUid,
           p.updatedAt = datetime()
@@ -41,8 +41,8 @@ export async function POST(request: Request) {
 
     const nodeParams = {
       uid: projectUid,
-      titre: projectData.titre,
-      statut: projectData.statut,
+      title: projectData.title,
+      status: projectData.status,
       priority: projectData.priority,
       owner: projectData.owner
     };

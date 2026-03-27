@@ -4,12 +4,12 @@ export default function TomHatToesPage() {
       {/* Remplacement de nexus-card par bio-card, ajout de padding et du mode group pour l'interaction */}
       <div className="bio-card text-center p-10 group">
         
-        {/* Le Titre : Passage du dégradé émeraude/cyan au rouge magmatique/rosé */}
+        {/* Le title : Passage du dégradé émeraude/cyan au rouge magmatique/rosé */}
         <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-slate-100 to-red-600 mb-4 tracking-widest uppercase drop-shadow-sm">
           Tom-Hat-Toes
         </h1>
         
-        {/* Le Sous-titre : Gris bleuté clair qui rougit subtilement au survol */}
+        {/* Le Sous-title : Gris bleuté clair qui rougit subtilement au survol */}
         <p className="text-slate-400 font-light tracking-wide group-hover:text-red-300/80 transition-colors duration-500">
           Interface de l'inception opérationnelle. &lt;(:&lt;
         </p>

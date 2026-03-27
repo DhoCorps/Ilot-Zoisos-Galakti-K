@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Link } from "../../../../navigation";
 import { Users, Plus, Loader2, X, Network, ShieldCheck } from "lucide-react";
 import { teams as teamsApi } from "../../../../lib/apiClient"; 
-import { CreateTeamForm } from "../../../../components/teams/CreateTeamForm.";
+import { CreateTeamForm } from "../../../../components/teams/CreateTeamForm";
 import { NestCard } from "../../../../components/nids/NestCard";
 
 export default function TeamsListPage() {

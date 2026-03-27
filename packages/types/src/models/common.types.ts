@@ -20,11 +20,11 @@ export const BaseNodeSchema = z.object({
   updatedAt: z.union([z.date(), z.string()]).optional(),
 });
 
-// 👉 L'EXPORT MANQUANT : on génère IBaseNode pour les autres fichiers
 export type IBaseNode = z.infer<typeof BaseNodeSchema>;
 
-// 📊 Constantes Globales
-export const StatutProjectSchema = z.enum(['Planifié', 'En Cours', 'Terminé', 'En Pause', 'Vitesse Réduite']);
-export const PriorityLevelSchema = z.enum(['trivial', 'easy', 'medium', 'hard', 'extreme', 'critical']); // 👈 Échelle complète
+// 📊 Constantes Globales (TRADUITES EN ANGLAIS)
+export const ProjectStatusSchema = z.enum(['PLANNED', 'IN_PROGRESS', 'COMPLETED', 'PAUSED', 'REDUCED_SPEED']);
+export const ProjectPrioritySchema = z.enum(['TRIVIAL', 'EASY', 'MEDIUM', 'HARD', 'EXTREME', 'CRITICAL']);
+
 // 👉 L'EXPORT MANQUANT POUR TASKS
 export const ComplexityLevelSchema = z.number().min(1).max(10).default(1);

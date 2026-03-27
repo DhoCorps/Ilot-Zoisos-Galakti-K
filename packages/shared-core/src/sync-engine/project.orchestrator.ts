@@ -16,7 +16,7 @@ export const ProjectOrchestrator = {
 
   async createProject(projectData: ICreateProject, ownerUid: string) {
     const uid = uuidv4().slice(0, 8);
-    const slug = projectData.slug || generateSlug(projectData.titre);
+    const slug = projectData.slug || generateSlug(projectData.title);
 
     // 1. MONGO : On stocke les références techniques
     const mongoProject = await ProjectModel.create({
@@ -39,8 +39,8 @@ export const ProjectOrchestrator = {
         
         CREATE (p:Project {
           uid: $uid,
-          titre: $titre,
-          statut: $statut,
+          title: $title,
+          status: $status,
           createdAt: datetime()
         })
         
@@ -62,8 +62,8 @@ export const ProjectOrchestrator = {
 
       await session.run(cypher, {
         uid,
-        titre: projectData.titre,
-        statut: projectData.statut || 'Planifié',
+        title: projectData.title,
+        status: projectData.status || 'Planifié',
         ownerUid,
         teamUid: projectData.teamUid || null,
         parentUid: projectData.parent || null // Ici on passe l'UID du projet parent
@@ -85,22 +85,22 @@ export const ProjectOrchestrator = {
     if (!mongoProject) throw new Error("Fragment introuvable ou signature thermique non autorisée.");
 
     // 2. Mise à jour Neo4j (Seulement si les champs structurels changent)
-    if (updateData.titre || updateData.statut || updateData.priority) {
+    if (updateData.title || updateData.status || updateData.priority) {
       const driver = getNeo4jDriver();
       const session = driver.session();
       try {
         const cypherUpdate = `
           MATCH (p:Project {uid: $uid})
-          SET p.titre = COALESCE($titre, p.titre),
-              p.statut = COALESCE($statut, p.statut),
+          SET p.title = COALESCE($title, p.title),
+              p.status = COALESCE($status, p.status),
               p.priority = COALESCE($priority, p.priority),
               p.updatedAt = datetime()
           RETURN p
         `;
         await session.run(cypherUpdate, {
           uid: projectUid,
-          titre: updateData.titre || null,
-          statut: updateData.statut || null,
+          title: updateData.title || null,
+          status: updateData.status || null,
           priority: updateData.priority || null
         });
       } catch (error: any) {

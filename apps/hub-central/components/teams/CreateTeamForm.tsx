@@ -18,7 +18,7 @@ export function CreateTeamForm({ onSuccess, parentTeamId = null }: CreateTeamFor
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    nom: '',
+    name: '',
     description: '',
     isPrivate: false
   });
@@ -40,7 +40,7 @@ export function CreateTeamForm({ onSuccess, parentTeamId = null }: CreateTeamFor
     try {
       // 🧬 Forge de l'objet Team aligné sur l'Ilot Zoizos
       const newTeam = await teams.create({
-        nom: formData.nom,
+        name: formData.name,
         description: formData.description,
         owner: userId, // On injecte le créateur
         parent: parentTeamId, // Pour la hiérarchie des nids
@@ -92,8 +92,8 @@ export function CreateTeamForm({ onSuccess, parentTeamId = null }: CreateTeamFor
           <input
             required
             type="text"
-            value={formData.nom}
-            onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="EX: LA CANOPÉE CENTRALE"
             className="w-full px-4 py-3 bg-slate-900/40 border border-slate-800 rounded-xl text-slate-200 outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20 transition-all placeholder:text-slate-800 font-bold"
           />
@@ -134,7 +134,7 @@ export function CreateTeamForm({ onSuccess, parentTeamId = null }: CreateTeamFor
         {/* Bouton de validation */}
         <button
           type="submit"
-          disabled={isPending || formData.nom.length < 3}
+          disabled={isPending || formData.name.length < 3}
           className="w-full py-4 mt-4 bg-gradient-to-r from-red-900 to-rose-900 hover:from-red-800 hover:to-rose-800 disabled:from-slate-900 disabled:to-slate-900 disabled:text-slate-700 text-white rounded-xl font-black uppercase tracking-[0.3em] text-[10px] transition-all flex items-center justify-center gap-3 shadow-xl border border-red-500/20"
         >
           {isPending ? (

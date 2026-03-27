@@ -37,7 +37,7 @@ export const HealthOrchestrator = {
         { 
           $set: { 
             "wellbeing.isAtReducedSpeed": true,
-            statut: 'Vitesse Réduite' 
+            status: 'Vitesse Réduite' 
           } 
         }
       );

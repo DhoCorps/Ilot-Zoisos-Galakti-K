@@ -7,7 +7,7 @@ interface NestCardProps {
   team: {
     _id?: string;
     uid: string; // L'UID est désormais obligatoire pour le Graphe
-    nom: string;
+    name: string;
     description?: string;
     membersCount?: number;
     slug?: string;
@@ -53,7 +53,7 @@ export const NestCard = ({ team }: NestCardProps) => {
         </div>
 
         <h3 className="text-xl font-extrabold text-slate-100 mb-2 group-hover:text-red-400 transition-colors tracking-tight">
-          {team.nom}
+          {team.name}
         </h3>
         
         <p className="text-sm text-slate-500 font-light line-clamp-2 mb-8 min-h-[40px] leading-relaxed group-hover:text-slate-400 transition-colors">

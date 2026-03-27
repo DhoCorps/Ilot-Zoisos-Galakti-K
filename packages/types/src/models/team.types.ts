@@ -4,12 +4,19 @@ import { BaseNodeSchema } from './common.types';
 export const BirdRoleSchema = z.enum(['ADMIN', 'MODERATOR', 'BUILDER', 'SPECTATOR']);
 
 export const TeamSchema = BaseNodeSchema.extend({
-  nom: z.string().min(3).max(50),
+  name: z.string().min(3).max(50), 
   description: z.string().max(300).optional(),
-  owner: z.string(),
-  parent: z.string().nullable().optional(),
+  avatarUrl: z.string().optional(), // 👈 Oubli réparé
   
-  // 🛡️ RÉGLAGES : Doit correspondre à ton TeamModel
+  ownerId: z.string(), 
+  parentId: z.string().nullable().optional(), 
+  leaderId: z.string().nullable().optional(),
+  
+  // 🛡️ MODÉRATION : Aligné sur le modèle
+  moderation: z.object({
+    isFlagged: z.boolean().default(false)
+  }).default({ isFlagged: false }),
+  
   settings: z.object({
     isGlobalReducedSpeed: z.boolean().default(false),
     allowSearch: z.boolean().default(true),
@@ -22,6 +29,7 @@ export const TeamSchema = BaseNodeSchema.extend({
 });
 
 export type ITeam = z.infer<typeof TeamSchema>;
+
 // Pour Neo4j
 export interface INestingRelation {
   since: Date;

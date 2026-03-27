@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 
 // Types rapides pour nos listes
 interface Bird { uid: string; username: string; }
-interface Team { uid: string; nom: string; }
+interface Team { uid: string; name: string; }
 
 export default function CreateTeamPage() {
   const router = useRouter();
   
   // États du formulaire
-  const [nom, setNom] = useState("");
+  const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [creatorUid, setCreatorUid] = useState(""); 
   const [parentUid, setParentUid] = useState(""); 
@@ -67,7 +67,7 @@ export default function CreateTeamPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          nom, 
+          name, 
           description, 
           creatorUid,
           parentUid: parentUid || undefined, 
@@ -79,9 +79,9 @@ export default function CreateTeamPage() {
 
       if (res.ok) {
         setStatus("success");
-        setMessage(`✨ Escouade "${data.data.nom}" créée avec succès !`);
+        setMessage(`✨ Escouade "${data.data.name}" créée avec succès !`);
         // On vide les champs pour en recréer une autre
-        setNom("");
+        setName("");
         setDescription("");
       } else {
         throw new Error(data.error || "Erreur lors de l'inception.");
@@ -108,7 +108,7 @@ export default function CreateTeamPage() {
           <div className="space-y-4 border-b border-slate-800 pb-6">
             <div>
               <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Nom de l'escouade</label>
-              <input type="text" required className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-emerald-500 outline-none" value={nom} onChange={(e) => setNom(e.target.value)} />
+              <input type="text" required className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-emerald-500 outline-none" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div>
               <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Description</label>
@@ -126,7 +126,7 @@ export default function CreateTeamPage() {
             >
               <option value="">-- Aucune (Escouade Racine) --</option>
               {availableTeams.map(team => (
-                <option key={team.uid} value={team.uid}>{team.nom}</option>
+                <option key={team.uid} value={team.uid}>{team.name}</option>
               ))}
             </select>
           </div>

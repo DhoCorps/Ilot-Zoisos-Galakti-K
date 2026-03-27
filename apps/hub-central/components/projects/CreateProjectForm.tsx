@@ -63,19 +63,19 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
     }
 
     const formData = new FormData(e.currentTarget);
-    const rawTitre = formData.get('titre') as string;
+    const rawtitle = formData.get('title') as string;
     
     // Génération automatique du slug si vide
     let slug = formData.get('slug') as string;
     if (!slug) {
-      slug = rawTitre.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      slug = rawtitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
     }
 
     const projectData = {
-      titre: rawTitre,
+      title: rawtitle,
       slug: slug,
       description: formData.get('description') as string,
-      statut: formData.get('statut') as string,
+      status: formData.get('status') as string,
       priority: formData.get('priority') as string,
       teamUid: selectedTeamUid, // Liaison Neo4j & Mongo
       ownerUid: ownerId, 
@@ -152,7 +152,7 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
                   ) : (
                     availableTeams.map((t) => (
                       <option key={t.uid} value={t.uid} className="bg-slate-950 text-slate-200">
-                        {t.nom.toUpperCase()}
+                        {t.name.toUpperCase()}
                       </option>
                     ))
                   )}
@@ -166,10 +166,10 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest ml-1">
               <Target size={14} className="text-slate-500" />
-              Titre du chantier *
+              title du chantier *
             </label>
             <input
-              name="titre"
+              name="title"
               type="text"
               required
               className="w-full px-4 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-800 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/50 shadow-inner transition-all font-light"
@@ -208,10 +208,10 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
               <Activity size={14} className="text-slate-500" />
-              Statut
+              status
             </label>
             <select
-              name="statut"
+              name="status"
               className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-slate-300 outline-none focus:border-red-500 appearance-none cursor-pointer text-sm shadow-inner"
             >
               <option value="Planifié">Planifié</option>

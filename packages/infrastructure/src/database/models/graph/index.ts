@@ -14,7 +14,7 @@ const UserSchema = new Schema({
   uid: { type: String, required: true, unique: true, default: () => uuidv4(), index: true },
 
   // --- 👤 INFOS DE BASE ---
-  nom: { type: String, required: true },
+  name: { type: String, required: true },
   prenom: { type: String },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, select: false }, // Vital pour ton Auth classique

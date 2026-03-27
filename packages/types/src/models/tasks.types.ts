@@ -6,10 +6,10 @@ import { BaseNodeSchema, PriorityLevelSchema, ComplexityLevelSchema } from './co
  * Unité de travail atomique au sein d'un Fragment (Projet).
  */
 export const TaskSchema = BaseNodeSchema.extend({
-  // Titre de la tâche (min 2 caractères pour les noms courts comme "UI")
-  titre: z.string()
-    .min(2, "Le titre de la brindille est trop court")
-    .max(100, "Titre trop long"),
+  // title de la tâche (min 2 caractères pour les noms courts comme "UI")
+  title: z.string()
+    .min(2, "Le title de la brindille est trop court")
+    .max(100, "title trop long"),
 
   description: z.string().default(''),
 
@@ -23,8 +23,8 @@ export const TaskSchema = BaseNodeSchema.extend({
   priority: PriorityLevelSchema.default('medium'),
   complexity: ComplexityLevelSchema.default(1),
   
-  // ID du statut (référence au schéma de statut du projet)
-  statut: z.string().min(1, "Un statut est requis"), 
+  // ID du status (référence au schéma de status du projet)
+  status: z.string().min(1, "Un status est requis"), 
   
   /**
    * 🧘 WELLBEING (L'ADN de l'Îlot)

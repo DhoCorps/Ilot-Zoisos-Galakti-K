@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Entité créatrice introuvable dans la base." }, { status: 404 });
     }
 
-    console.log(`🏗️ Forgeron en action : ${userDoc.uid} pour le nid : ${body.nom}`);
+    console.log(`🏗️ Forgeron en action : ${userDoc.uid} pour le nid : ${body.name}`);
 
     /**
      * 🌀 APPEL À L'ORCHESTRATEUR
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
      * 3. session.run("MATCH (u:User),(t:Team) CREATE (u)-[:ADMIN]->(t)") (Relation)
      */
     const result = await TeamOrchestrator.fosterTeam({
-      nom: body.nom,
+      name: body.name,
       description: body.description,
       creatorUid: userDoc.uid,      // UID pour Neo4j
       creatorId: userDoc._id,       // _id pour MongoDB (très important !)
