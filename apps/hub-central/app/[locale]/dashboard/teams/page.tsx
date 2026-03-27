@@ -1,138 +1,113 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Link, useRouter } from "../../../../navigation";
-import { Users, Plus, Loader2, X } from "lucide-react";
-import { teams } from "../../../../lib/apiClient"; 
+import { Link } from "../../../../navigation";
+import { Users, Plus, Loader2, X, Network, ShieldCheck } from "lucide-react";
+import { teams as teamsApi } from "../../../../lib/apiClient"; 
+import { CreateTeamForm } from "../../../../components/teams/CreateTeamForm.";
+import { NestCard } from "../../../../components/nids/NestCard";
 
 export default function TeamsListPage() {
-  const router = useRouter();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [teamName, setTeamName] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
-  
-  // 🟢 NOUVEAU : État pour stocker la vraie liste des nids
-  const [myTeams, setMyTeams] = useState<any[]>([]);
+  const [nids, setNids] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // 🟢 NOUVEAU : Récupération des nids au chargement de la page
-  useEffect(() => {
-    const fetchNids = async () => {
-      try {
-        const data = await teams.getAll();
-        // Si l'API renvoie un tableau direct ou { data: [...] }
-        setMyTeams(Array.isArray(data) ? data : (data as any).data || []);
-      } catch (error) {
-        console.error("Impossible d'observer la canopée :", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchNids();
-  }, []);
-
-  
-
-  const handleCreateTeam = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!teamName.trim()) return;
-
+  // 1. Scan de la Canopée via l'apiClient
+  const fetchNids = async () => {
     try {
-      setIsCreating(true);
-      const newTeam = await teams.create({ nom: teamName });
-      setIsModalOpen(false);
-      
-      const targetId = (newTeam as any).uid || (newTeam as any)._id || (newTeam as any).slug;
-      
-      router.push(`/dashboard/teams/${targetId}`);
-      router.refresh();
+      setIsLoading(true);
+      const response = await teamsApi.getAll();
+      // On s'assure d'avoir un tableau propre
+      setNids(Array.isArray(response) ? response : []);
     } catch (error) {
-      console.error("Erreur lors de la création du nid :", error);
-      alert("Le ciel est trop chargé...");
+      console.error("🚨 Perturbation lors du scan des nids :", error);
     } finally {
-      setIsCreating(false);
+      setIsLoading(false);
     }
   };
 
-  return (
-    <div className="p-8 max-w-5xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-          <Users className="text-emerald-600" />
-          Mes Escouades
-        </h1>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold transition-all shadow-lg shadow-emerald-900/10"
-        >
-          <Plus className="w-4 h-4" />
-          Nouveau Nid
-        </button>
-      </div>
+  useEffect(() => {
+    fetchNids();
+  }, []);
 
-      {/* 🟢 LISTE DES TEAMS (Dynamique) */}
-      <div className="grid gap-4">
-        {isLoading ? (
-          <div className="flex justify-center p-8">
-            <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+  const handleSuccess = () => {
+    setIsModalOpen(false);
+    fetchNids(); 
+  };
+
+  return (
+    <div className="min-h-screen bg-[#05070A] p-8 md:p-12">
+      <div className="max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700">
+        
+        {/* EN-TÊTE DE LA FORGE */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 border-b border-slate-800/50 pb-10">
+          <div>
+            <h1 className="text-4xl font-black text-slate-100 tracking-tighter flex items-center gap-4">
+              <Network className="w-10 h-10 text-red-600" strokeWidth={2.5} />
+              OBSERVATOIRE DES NIDS
+            </h1>
+            <p className="text-slate-500 mt-2 font-mono text-[10px] uppercase tracking-[0.3em]">
+              Gestion des infrastructures collectives et des escouades
+            </p>
           </div>
-        ) : myTeams.length > 0 ? (
-          myTeams.map((team) => (
-            <Link 
-              key={team.uid || team._id} 
-              href={`/dashboard/teams/${team.uid || team._id}`} 
-              className="block p-6 bg-white border border-slate-200 rounded-2xl hover:border-emerald-500/50 transition-all"
-            >
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="font-bold text-lg text-slate-900">{team.nom}</h2>
-                  <p className="text-sm text-slate-500">
-                    {team.description || "Nid en pleine construction."}
-                  </p>
-                </div>
-                <span className="text-emerald-600 font-medium">Gérer →</span>
-              </div>
-            </Link>
-          ))
+
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="group flex items-center gap-3 px-8 py-4 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-[0_0_30px_rgba(220,38,38,0.2)]"
+          >
+            <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+            Tresser un Nid
+          </button>
+        </div>
+
+        {/* GRILLE DES NIDS */}
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-32 space-y-4">
+            <Loader2 className="w-12 h-12 animate-spin text-red-600" />
+            <p className="font-mono text-[10px] text-slate-700 uppercase tracking-widest">Calcul des vecteurs de la canopée...</p>
+          </div>
+        ) : nids.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {nids.map((team) => (
+              <NestCard key={team.uid} team={team} />
+            ))}
+          </div>
         ) : (
-          <div className="text-center p-12 bg-white rounded-2xl border border-dashed border-slate-300">
-            <p className="text-slate-500 mb-4">La canopée est vide.</p>
-            <button onClick={() => setIsModalOpen(true)} className="text-emerald-600 font-bold hover:underline">
-              Fondez le premier nid
+          <div className="flex flex-col items-center justify-center py-40 border-2 border-dashed border-slate-900 rounded-3xl bg-slate-950/20">
+            <div className="text-6xl mb-6 opacity-20 grayscale">🪺</div>
+            <p className="text-slate-500 font-light text-center max-w-sm leading-relaxed">
+              Aucune signature thermique détectée. <br/>
+              Votre environnement est prêt pour une nouvelle inception.
+            </p>
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="mt-8 text-red-500 hover:text-red-400 font-black text-xs uppercase tracking-widest underline underline-offset-8"
+            >
+              Initier le premier tressage
             </button>
           </div>
         )}
       </div>
 
-      {/* --- LA MODALE DE CRÉATION (Inchangée) --- */}
+      {/* MODALE D'INCEPTION (High-Visibility) */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border border-emerald-100 relative">
-            <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
-              <X className="w-6 h-6" />
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/95 backdrop-blur-md animate-in fade-in duration-500" 
+            onClick={() => setIsModalOpen(false)} 
+          />
+          
+          <div className="relative w-full max-w-xl bg-[#05070A] border border-slate-800 rounded-3xl shadow-[0_0_100px_rgba(0,0,0,1)] overflow-hidden animate-in zoom-in-95 duration-300">
+            <button 
+              onClick={() => setIsModalOpen(false)} 
+              className="absolute top-6 right-6 z-[1001] p-2 text-slate-500 hover:text-red-500 transition-all"
+            >
+              <X size={24} />
             </button>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Forger une Escouade</h2>
-            <form onSubmit={handleCreateTeam} className="space-y-4 mt-6">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Nom de l'escouade</label>
-                <input
-                  autoFocus
-                  type="text"
-                  value={teamName}
-                  onChange={(e) => setTeamName(e.target.value)}
-                  placeholder="Ex: Les Faucons du Code"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-emerald-500 transition-colors bg-slate-50"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isCreating || !teamName.trim()}
-                className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-emerald-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isCreating ? <><Loader2 className="w-5 h-5 animate-spin" /> Synchronisation hybride...</> : "Créer l'Escouade"}
-              </button>
-            </form>
+
+            <div className="max-h-[85vh] overflow-y-auto no-scrollbar">
+              <CreateTeamForm onSuccess={handleSuccess} />
+            </div>
           </div>
         </div>
       )}

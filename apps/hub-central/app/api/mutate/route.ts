@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       titre: projectData.titre,
       statut: projectData.statut,
       priority: projectData.priority,
-      ownerUid: projectData.ownerUid
+      owner: projectData.owner
     };
 
     // La session s'ouvre et se ferme proprement dans cette fonction (évite le bug de fuite de mémoire)

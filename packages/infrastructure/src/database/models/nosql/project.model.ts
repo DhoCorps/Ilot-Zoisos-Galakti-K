@@ -15,9 +15,9 @@ export interface IProjectDocument extends Document {
   dateDebut?: Date;
   dateFinEstimee?: Date;
   dateCloture?: Date;
-  deadline?: Date;
-  statut: string; 
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  deadline?: Date; 
+  statut: 'Planifié' | 'En Cours' | 'Terminé' | 'En Pause' | 'Vitesse Réduite'; // 👈 Aligné sur StatutProjectSchema
+  priority: 'trivial' | 'easy' | 'medium' | 'hard' | 'extreme' | 'critical'; // 👈 Aligné sur PriorityLevelSchema
   tags: Types.ObjectId[];
   owner: string; // Maintien du format string pour accepter l'UID Neo4j
   parent?: Types.ObjectId | null; 
@@ -33,10 +33,10 @@ export interface IProjectDocument extends Document {
     isFlagged: boolean;
   };
   
-  teamId?: Types.ObjectId | null; 
+  teamId?: string | null; // On utilise string pour stocker l'UID Neo4j comme convenu 
   createdAt: Date;
   updatedAt: Date;
-}
+  }
 
 /**
  * 🏗️ SCHÉMA (Configuration MongoDB)

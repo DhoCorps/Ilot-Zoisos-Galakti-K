@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { ProjectRole } from '@ilot/types';
+import { IRole } from '@ilot/types'; 
 import { RoleForm } from './RoleForm'; 
 import { PermissionForm } from '../permissions/PermissionForm';
 import { teams } from '../../lib/apiClient';
@@ -11,8 +11,9 @@ interface RolesTabProps {
   targetUserId: string;
   targetUserEmail: string;
   projectId: string;
-  initialRole?: ProjectRole;
+  initialRole?: string;
   initialCaps?: string[];
+  onSuccess?: () => void; // 🟢 LA CORRECTION EST ICI : Nouvelle propriété
 }
 
 export const RolesTab = ({
@@ -20,30 +21,49 @@ export const RolesTab = ({
   targetUserEmail,
   projectId,
   initialRole = 'VIEWER',
-  initialCaps = []
+  initialCaps = [],
+  onSuccess // 🟢 LA CORRECTION EST ICI
 }: RolesTabProps) => {
   const { status } = useSession();
 
-  // États locaux
-  const [role, setRole] = useState<ProjectRole>(initialRole);
+  const [role, setRole] = useState<string>(initialRole);
   const [caps, setCaps] = useState<string[]>(initialCaps);
   const [isSaving, setIsSaving] = useState(false);
+  
+  const [dbRoles, setDbRoles] = useState<IRole[]>([]);
+  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
 
-  // 🔓 On autorise l'interaction si on est authentifié ou en cours de chargement
   const isAuthorized = status === "authenticated" || status === "loading";
 
-  /**
-   * 🔄 Synchronisation initiale :
-   * On ne met à jour l'état que si targetUserId change (changement d'oiseau)
-   * pour ne pas écraser les modifications manuelles de l'utilisateur.
-   */
   useEffect(() => {
-    setRole(initialRole);
-    setCaps(initialCaps && initialCaps.length > 0 ? initialCaps : []);
-  }, [targetUserId, initialRole, initialCaps]);
+    const fetchRolesFromDB = async () => {
+      try {
+        const response = await fetch('/api/roles');
+        if (response.ok) {
+          const data = await response.json();
+          setDbRoles(Array.isArray(data) ? data : []); 
+        }
+      } catch (error) {
+        console.error("Erreur de récupération des rôles:", error);
+      } finally {
+        setIsLoadingRoles(false);
+      }
+    };
+    
+    fetchRolesFromDB();
+  }, []);
 
-  const handleRoleChange = (newRole: ProjectRole) => {
-    setRole(newRole);
+  const initialCapsString = JSON.stringify(initialCaps || []);
+
+  useEffect(() => {
+    setRole(initialRole || 'VIEWER');
+    setCaps(initialCaps || []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetUserId, initialRole, initialCapsString]);
+  
+  const handleRoleChange = (newRoleName: string, defaultPermissions: string[]) => {
+    setRole(newRoleName);
+    setCaps(defaultPermissions); 
   };
 
   const handleToggleCapability = (capId: string) => {
@@ -62,6 +82,12 @@ export const RolesTab = ({
         permissions: caps
       });
       alert("L'oiseau a été mis à jour avec succès !");
+      
+      // 🟢 LA CORRECTION EST ICI : On appelle onSuccess pour prévenir le parent
+      if (onSuccess) {
+        onSuccess();
+      }
+      
     } catch (error: any) {
       console.error("Erreur save:", error);
       alert(`Erreur: ${error.message}`);
@@ -72,25 +98,25 @@ export const RolesTab = ({
 
   return (
     <div className="max-w-5xl mx-auto py-6 space-y-8">
-      {/* Header avec bouton d'enregistrement */}
-      <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <div className="flex justify-between items-center bg-slate-900/60 p-6 rounded-2xl shadow-xl border border-emerald-500/20 backdrop-blur-xl">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Configuration des Accès</h2>
-          <p className="text-sm text-gray-500">Gestion de l'oiseau : {targetUserEmail}</p>
+          <h2 className="text-2xl font-bold text-white mb-1">Configuration des Accès</h2>
+          <p className="text-sm text-emerald-400/70 font-mono">Cible : {targetUserEmail}</p>
         </div>
         <button
           onClick={handleSave}
           disabled={isSaving || status === "unauthenticated"}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50 shadow-md"
+          className="bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-bold py-3 px-6 rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-emerald-900/20 border border-emerald-500/50"
         >
           {isSaving ? 'Synchronisation...' : 'Enregistrer les modifications'}
         </button>
       </div>
 
-      {/* Formulaires */}
-      <div className={!isAuthorized ? "opacity-50 pointer-events-none" : ""}>
+      <div className={!isAuthorized ? "opacity-50 pointer-events-none grayscale transition-all" : "space-y-6"}>
         <RoleForm 
           currentRole={role} 
+          availableRoles={dbRoles} 
+          isLoading={isLoadingRoles} 
           onRoleChange={handleRoleChange} 
         />
         

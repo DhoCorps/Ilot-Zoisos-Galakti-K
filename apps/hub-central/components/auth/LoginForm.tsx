@@ -18,58 +18,61 @@ export default function LoginForm() {
     const email = formData.get('email');
     const password = formData.get('password');
 
-    // 🏐 Le Smash NextAuth
     const result = await signIn('credentials', {
       email,
       password,
-      redirect: false, // On gère la redirection nous-mêmes pour plus de contrôle
+      redirect: false, 
     });
 
     if (result?.error) {
       setError("L'oiseau n'a pas été reconnu... Vérifie tes accès.");
       setLoading(false);
     } else {
-      // ✅ SUCCÈS : On propulse l'oiseau vers le dashboard
-      // On utilise window.location pour forcer un rafraîchissement propre de la session
       window.location.href = '/fr/dashboard'; 
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-xl shadow-md border border-gray-100">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Connexion à l'Îlot</h2>
+    <div className="w-full max-w-md p-8 bg-slate-900/50 border border-emerald-500/30 rounded-2xl backdrop-blur-xl shadow-2xl nexus-card">
+      <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 mb-6 text-center uppercase tracking-wider">
+        Connexion à l'Îlot
+      </h2>
       
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Email de l'oiseau</label>
+          <label className="block text-sm font-medium text-emerald-400 mb-1">Email de l'oiseau</label>
           <input
             name="email"
             type="email"
             required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-3 bg-slate-950/50 border border-slate-800 rounded-lg text-slate-200 placeholder-slate-600 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all shadow-inner"
             placeholder="geo@ilot.com"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Mot de passe</label>
+          <label className="block text-sm font-medium text-emerald-400 mb-1">Mot de passe</label>
           <input
             name="password"
             type="password"
             required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-3 bg-slate-950/50 border border-slate-800 rounded-lg text-slate-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all shadow-inner"
           />
         </div>
 
         {error && (
-          <p className="text-red-500 text-sm font-semibold">{error}</p>
+          <div className="p-3 rounded-lg bg-red-900/20 border border-red-500/30 text-red-400 text-sm font-medium text-center backdrop-blur-sm">
+            {error}
+          </div>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-2 px-4 rounded-md text-white font-bold transition-colors ${
-            loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'
+          className={`w-full py-3 rounded-lg text-white font-bold transition-all shadow-lg ${
+            loading 
+              ? 'bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-700' 
+              : 'bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 shadow-emerald-900/40 hover:shadow-cyan-900/40 border border-emerald-500/50'
           }`}
         >
           {loading ? 'Vérification dans la canopée...' : 'Entrer dans l\'Îlot'}

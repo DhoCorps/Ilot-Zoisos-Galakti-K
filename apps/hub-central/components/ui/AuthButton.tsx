@@ -42,7 +42,7 @@ export const AuthButton = () => {
   return (
     <button
       onClick={() => signIn("github")}
-      className="px-5 py-2 rounded-full border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/20 text-emerald-400 text-xs uppercase tracking-[0.2em] transition-all hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+      className="px-5 py-2 rounded-full border border-emerald-500/30 bg-slate-900/50 hover:bg-emerald-500/10 text-emerald-400 text-xs uppercase tracking-[0.2em] transition-all duration-300 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:border-emerald-400/60 backdrop-blur-md"
     >
       S'identifier au Nexus
     </button>

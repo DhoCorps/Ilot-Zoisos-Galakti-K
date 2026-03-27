@@ -1,29 +1,24 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../../lib/auth"; // 🟢 IMPORTANT : Importation depuis /lib/
-import { connectToDatabase } from "@ilot/infrastructure";
+import { authOptions } from "../../../lib/auth"; 
+import { connectToDatabase, TeamModel, UserModel } from "@ilot/infrastructure";
 import { TeamOrchestrator } from "@ilot/shared-core"; 
-import { TeamModel } from "@ilot/infrastructure";
-// 🟢 LA NOUVELLE FONCTION GET (Pour lister les nids)
+
 export async function GET(req: Request) {
   try {
     await connectToDatabase();
-    
-    // On vérifie le passeport
     const session = await getServerSession(authOptions);
+    
     if (!session || !session.user) {
       return NextResponse.json({ error: "Oiseau non identifié." }, { status: 401 });
     }
 
-    // 🔍 On récupère tous les nids depuis MongoDB
-    // (Plus tard, tu pourras filtrer pour ne renvoyer que les nids où l'oiseau est membre)
-    const nids = await TeamModel.find({}).lean();
+    // On récupère les nids. 
+    // ASTUCE : On peut filtrer par createur ou par membre via l'orchestrateur plus tard.
+    const nids = await TeamModel.find({}).sort({ createdAt: -1 }).lean();
 
-    // On renvoie la donnée bien emballée
     return NextResponse.json({ success: true, data: nids }, { status: 200 });
-
   } catch (error: any) {
-    console.error("❌ [GET TEAMS] Erreur :", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -31,32 +26,58 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     await connectToDatabase();
-    
-    // getServerSession utilise l'objet de config pur
     const session = await getServerSession(authOptions);
 
-    // 🔍 LES MOUCHARDS À AJOUTER ICI :
-    console.log("1. LA SESSION EST-ELLE LUE ? ->", session ? "OUI" : "NON");
-    console.log("2. QUE CONTIENT LE PASSEPORT ? ->", session?.user);
-
+    // Diagnostic de session
     if (!session || !session.user) {
-      return NextResponse.json({ error: "Oiseau non identifié." }, { status: 401 });
+      console.error("❌ Tentative de forge sans session valide.");
+      return NextResponse.json({ error: "Votre signature thermique est introuvable. Reconnectez-vous." }, { status: 401 });
     }
 
     const body = await req.json();
-    const creatorUid = session.user.uid ?? '>:)>';
 
+    // 🛡️ SÉCURITÉ : Récupération de l'ID MongoDB de l'utilisateur
+    // Next-auth stocke souvent l'email ou le UID (chaîne), mais Mongo veut l'ID technique.
+    const userDoc = await UserModel.findOne({ 
+      $or: [{ uid: session.user.uid }, { email: session.user.email }] 
+    }).select('_id uid').lean();
+
+    if (!userDoc) {
+      return NextResponse.json({ error: "Entité créatrice introuvable dans la base." }, { status: 404 });
+    }
+
+    console.log(`🏗️ Forgeron en action : ${userDoc.uid} pour le nid : ${body.nom}`);
+
+    /**
+     * 🌀 APPEL À L'ORCHESTRATEUR
+     * FosterTeam doit gérer :
+     * 1. TeamModel.create (MongoDB)
+     * 2. session.run("CREATE (t:Team {uid: ...})") (Neo4j)
+     * 3. session.run("MATCH (u:User),(t:Team) CREATE (u)-[:ADMIN]->(t)") (Relation)
+     */
     const result = await TeamOrchestrator.fosterTeam({
       nom: body.nom,
       description: body.description,
-      creatorUid: creatorUid,
-      parentUid: body.parentUid 
+      creatorUid: userDoc.uid,      // UID pour Neo4j
+      creatorId: userDoc._id,       // _id pour MongoDB (très important !)
+      parentUid: body.parentUid || null,
+      settings: body.settings || { isPrivate: false, allowSearch: true }
     });
 
-    return NextResponse.json({ success: true, data: result.team }, { status: 201 });
+    return NextResponse.json({ 
+      success: true, 
+      message: "Nid forgé avec succès dans la matrice hybride.",
+      data: result.team 
+    }, { status: 201 });
 
   } catch (error: any) {
-    console.error("❌ [POST TEAM] Erreur :", error.message);
+    console.error("❌ [POST TEAM] Échec de l'injection :", error.message);
+    
+    // Gestion spécifique des doublons (Nom déjà pris)
+    if (error.code === 11000) {
+      return NextResponse.json({ error: "Ce nom de nid est déjà réservé dans la matrice." }, { status: 400 });
+    }
+
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -34,13 +34,13 @@ export const LangSwitcher = () => {
       onClick={toggleLanguage}
       disabled={isSyncing}
       className={`
-        flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-500 group
+        flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-500 group backdrop-blur-md
         ${isSyncing 
-          ? 'border-emerald-500/50 bg-emerald-500/10 scale-95' 
-          : 'border-white/10 bg-white/5 hover:bg-white/10'}
+          ? 'border-emerald-500/50 bg-emerald-900/30 scale-95 shadow-inner' 
+          : 'border-slate-700/50 bg-slate-800/40 hover:bg-slate-800/80 hover:border-emerald-500/30'}
       `}
-      title={locale === 'fr' ? 'Switch to English' : 'Passer en Français'}
-    >
+      title={locale === 'fr' ? 'Switch to English' : 'Passer en Français'} >
+        
       {/* Icône qui tourne si on synchronise, sinon icône fixe */}
       {isSyncing ? (
         <Loader2 size={14} className="animate-spin text-emerald-500" />

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link'; // 🟢 Ajout de l'import pour la navigation Next.js
 import LoadingZoizos from '../../components/ui/LoadingZoizos';
 
 export default function SettingsPage() {
@@ -50,7 +51,8 @@ export default function SettingsPage() {
     <div className="max-w-2xl mx-auto p-8">
       <h1 className="text-3xl font-bold text-white mb-8">Paramètres de l'Oiseau</h1>
       
-      <form onSubmit={handleUpdate} className="space-y-6 bg-slate-900/50 p-8 rounded-2xl border border-slate-800 backdrop-blur-xl">
+      {/* --- FORMULAIRE DU PROFIL --- */}
+      <form onSubmit={handleUpdate} className="space-y-6 bg-slate-900/50 p-8 rounded-2xl border border-slate-800 backdrop-blur-xl mb-8">
         <div className="flex items-center gap-6 mb-8">
           <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center text-3xl shadow-lg border-2 border-slate-700">
             {formData.avatarUrl ? <img src={formData.avatarUrl} alt="Avatar" className="rounded-full" /> : "Zo"}
@@ -75,6 +77,27 @@ export default function SettingsPage() {
           Sauvegarder les modifications
         </button>
       </form>
+
+      {/* --- 🟢 NOUVELLE SECTION : ADMINISTRATION DES RÔLES --- */}
+      <div className="bg-slate-900/50 p-8 rounded-2xl border border-slate-800 backdrop-blur-xl hover:border-indigo-500/50 transition-colors">
+        <div className="flex items-center space-x-4 mb-6">
+          <div className="p-3 bg-indigo-500/10 text-indigo-400 rounded-lg border border-indigo-500/20">
+            <span className="text-2xl">🔨</span>
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-white">Atelier des Rôles</h3>
+            <p className="text-sm text-slate-400">Gérez la hiérarchie de l'Îlot et les accès par défaut.</p>
+          </div>
+        </div>
+        
+        <Link 
+          href="/setting/roles" 
+          className="inline-flex items-center justify-center w-full bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 hover:text-indigo-300 font-medium py-3 px-4 rounded-lg border border-indigo-500/30 transition-all"
+        >
+          Accéder à la Forge →
+        </Link>
+      </div>
+
     </div>
   );
 }

@@ -42,57 +42,65 @@ export class TeamOrchestrator {
   static async fosterTeam(teamData: { 
     nom: string, 
     creatorUid: string, 
+    creatorId: any, // 👈 Ajoute cette ligne (tu peux mettre Types.ObjectId si tu as importé de mongoose)
     description?: string,
-    parentUid?: string // 👈 Le secret de l'Inception
-  }) {
+    parentUid?: string,
+    settings?: any // 👈 Ajoute aussi ceci pour être tranquille avec les réglages
+}) {
     const check = MoralChecker.analyze(teamData.nom);
     if (!check.isSafe) throw new Error(`Nom invalide : ${check.suggestion}`);
 
+    // 1. Validation de l'existence du créateur dans Mongo
     const createur = await UserModel.findOne({ uid: teamData.creatorUid });
     if (!createur) throw new Error("Créateur introuvable.");
 
-    // 1. Mongo : On cherche l'ObjectId du parent si un parentUid est fourni
     let parentObjectId = null;
     if (teamData.parentUid) {
       const parentTeam = await TeamModel.findOne({ uid: teamData.parentUid });
-      if (!parentTeam) throw new Error("L'escouade parente n'existe pas.");
+      if (!parentTeam) throw new Error("L'escouade parente n'existe pas dans la matrice Mongo.");
       parentObjectId = parentTeam._id;
     }
 
+    // 2. Création Mongo
     const newTeam = await TeamModel.create({
       nom: teamData.nom,
       description: teamData.description,
       createur: createur._id,
       leader: createur._id,
-      parent: parentObjectId // 👈 Mongo sait qui est le parent
+      parent: parentObjectId 
     });
 
-    // 2. Neo4j : Création du nœud, du leader, ET de la relation parentale
+    // 3. Forge Neo4j
     const session = getNeo4jSession();
     try {
-      // 🩹 FIX : MERGE au lieu de MATCH pour l'oiseau (Auto-guérison)
-      let cypher = `
-        MERGE (u:Oiseau { mongodbId: $creatorUid })
-        MERGE (t:Team { mongodbId: $teamUid })
+      // On utilise des paramètres explicites pour éviter toute confusion
+      const cypher = `
+        MERGE (u:Oiseau { uid: $creatorUid })
+        MERGE (t:Team { uid: $teamUid })
         ON CREATE SET t.nom = $nom, t.createdAt = datetime()
         MERGE (u)-[r:MEMBER_OF { role: 'ADMIN' }]->(t)
-        ON CREATE SET r.since = coalesce(r.since, datetime())
+        ON CREATE SET r.since = datetime()
+        WITH t
+        // Cette partie ne s'exécute que si parentUid est fourni
+        CALL apoc.do.when(
+          $parentUid IS NOT NULL,
+          'MATCH (p:Team { uid: parentUid }) MERGE (t)-[:CHILD_OF]->(p) RETURN t',
+          'RETURN t',
+          {t: t, parentUid: $parentUid}
+        ) YIELD value
+        RETURN count(t)
       `;
-
-      if (teamData.parentUid) {
-        cypher += `
-          WITH t
-          MATCH (p:Team { mongodbId: $parentUid })
-          MERGE (t)-[:CHILD_OF]->(p)
-        `;
-      }
 
       await session.run(cypher, {
         creatorUid: teamData.creatorUid,
-        teamUid: newTeam.uid,
+        teamUid: newTeam.uid, // On utilise bien l'UUID
         nom: newTeam.nom,
-        parentUid: teamData.parentUid
+        parentUid: teamData.parentUid || null
       });
+    } catch (neoError) {
+      // Si Neo4j échoue, on devrait idéalement rollback Mongo, 
+      // mais au moins on log l'alerte de désynchronisation
+      console.error("⚠️ Désynchronisation Graphique :", neoError);
     } finally {
       await session.close();
     }
@@ -101,30 +109,41 @@ export class TeamOrchestrator {
   }
 
   /**
-   * 🎖️ ASSIGNE UN RÔLE SPÉCIFIQUE (Permissions granulaires)
+   * 🎖️ ASSIGNE UN RÔLE SPÉCIFIQUE (Et ses permissions granulaires sur-mesure)
    */
-  static async assignRole(teamUid: string, targetUserUid: string, role: string) {
+  static async assignRole(teamUid: string, targetUserUid: string, role: string, permissions: string[] = []) {
     const session = getNeo4jSession();
     try {
-      // 🩹 FIX : On ajoute WITH u pour faire le pont entre MERGE et MATCH
       const cypher = `
         MERGE (u:Oiseau { mongodbId: $userUid })
         WITH u
         MATCH (t:Team { mongodbId: $teamUid })
         MERGE (u)-[r:MEMBER_OF]->(t)
-        SET r.role = $role, r.since = coalesce(r.since, datetime())
-        RETURN r.role AS assignedRole
+        // 🟢 FIX : On enregistre maintenant le rôle ET les permissions spécifiques !
+        SET r.role = $role, 
+            r.permissions = $permissions, 
+            r.since = coalesce(r.since, datetime())
+        RETURN r.role AS assignedRole, r.permissions AS assignedPermissions
       `;
       
-      const result = await session.run(cypher, { userUid: targetUserUid, teamUid, role });
+      const result = await session.run(cypher, { 
+        userUid: targetUserUid, 
+        teamUid, 
+        role, 
+        permissions // 👈 On injecte le tableau de plumes
+      });
+
       if (result.records.length === 0) throw new Error("Impossible de lier l'oiseau (l'équipe n'existe pas dans le graphe).");
       
-      return { success: true, role: result.records[0].get('assignedRole') };
+      return { 
+        success: true, 
+        role: result.records[0].get('assignedRole'),
+        permissions: result.records[0].get('assignedPermissions')
+      };
     } finally {
       await session.close();
     }
   }
-
   /**
    * 🔍 GET : Récupère les détails du nid (Mongo) + ses habitants (Neo4j)
    */

@@ -7,10 +7,10 @@ export const ProjectSchema = BaseNodeSchema.extend({
     .max(100, "Titre trop long"),
   slug: z.string().min(3).regex(/^[a-z0-9-]+$/, "Le slug doit être au format url-friendly"),
   description: z.string().max(1000).default(''),
-  ownerUid: z.string().uuid("L'UID du propriétaire doit être un UUID valide"),
+  owner: z.string().uuid("L'UID du propriétaire doit être un UUID valide"),
   teamUid: z.string().uuid().nullable().optional(),
   statut: StatutProjectSchema.default('Planifié'),
-  priority: PriorityLevelSchema.default('medium'),
+  priority: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
   isArchived: z.boolean().default(false),
   parent: z.string().uuid().nullable().optional(),
 });

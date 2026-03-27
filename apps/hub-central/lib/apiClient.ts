@@ -111,10 +111,11 @@ export const roles = {
  * 🏘️ MODULE : LES NIDS (Teams)
  */
 export const teams = {
-  getAll: () => apiFetch<ITeam[]>('/teams'),
+  getAll: () => 
+    apiFetch<any[]>('/teams'), 
+  create: (data: any) =>
+    apiFetch<any>('/teams', { method: 'POST', body: JSON.stringify(data) }),
   getById: (teamUid: string) => apiFetch<ITeam>(`/teams/${teamUid}`),
-  create: (data: { nom: string; description?: string; parentUid?: string }) => 
-    apiFetch<ITeam>('/teams', { method: 'POST', body: JSON.stringify(data) }),
   update: (teamUid: string, data: { nom?: string; description?: string }) => 
     apiFetch<ITeam>(`/teams/${teamUid}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (teamUid: string) => apiFetch<void>(`/teams/${teamUid}`, { method: 'DELETE' }),
@@ -126,6 +127,7 @@ export const teams = {
     apiFetch<void>(`/teams/${teamUid}/members/${userUid}`, { method: 'DELETE' }),
   invite: (data: { teamId: string; email: string; role: string; permissions?: string[] }) => 
     apiFetch<any>('/teams/invite', { method: 'POST', body: JSON.stringify(data) }),
+
 };
 
 /**
