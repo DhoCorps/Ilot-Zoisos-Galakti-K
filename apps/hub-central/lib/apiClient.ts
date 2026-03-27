@@ -116,8 +116,11 @@ export const teams = {
   create: (data: any) =>
     apiFetch<any>('/teams', { method: 'POST', body: JSON.stringify(data) }),
   getById: (teamUid: string) => apiFetch<ITeam>(`/teams/${teamUid}`),
-  update: (teamUid: string, data: { nom?: string; description?: string }) => 
-    apiFetch<ITeam>(`/teams/${teamUid}`, { method: 'PUT', body: JSON.stringify(data) }),
+  update: (teamUid: string, data: Partial<ITeam>) => 
+    apiFetch<ITeam>(`/teams/${teamUid}`, { 
+      method: 'PUT', 
+      body: JSON.stringify(data) 
+    }),
   delete: (teamUid: string) => apiFetch<void>(`/teams/${teamUid}`, { method: 'DELETE' }),
   
   getChirps: (teamUid: string) => apiFetch<any[]>(`/teams/${teamUid}/chirps`),

@@ -6,12 +6,13 @@ export const HealthOrchestrator = {
    * 📉 Synchronise la santé collective d'un nid basée sur ses fragments actifs.
    */
   async syncTeamHealth(teamId: Types.ObjectId | string) {
+    const teamObjectId = typeof teamId === 'string' ? new Types.ObjectId(teamId) : teamId;
+
     // 1. Agrégation des données de stress dans MongoDB
-    // On ne compte que les fragments non-archivés
     const stats = await ProjectModel.aggregate([
       { 
         $match: { 
-          teamId: new Types.ObjectId(teamId), 
+          teamId: teamObjectId.toString(), // On matche l'UID string stocké dans Project
           isArchived: false 
         } 
       },
@@ -25,17 +26,34 @@ export const HealthOrchestrator = {
     ]);
 
     const result = stats[0] || { averageStress: 0, projectCount: 0 };
+    const load = Math.round(result.averageStress);
     
-    // Détermination de la surcharge (seuil arbitraire à 75% ou trop de projets)
-    const isOverloaded = result.averageStress > 75 || result.projectCount > 10;
+    // 🛡️ SÉCURITÉ : Activation automatique de la Vitesse Réduite si charge > 90%
+    let isGlobalReducedSpeed = false;
+    if (load > 90) {
+      isGlobalReducedSpeed = true;
+      await ProjectModel.updateMany(
+        { teamId: teamObjectId.toString(), isArchived: false },
+        { 
+          $set: { 
+            "wellbeing.isAtReducedSpeed": true,
+            statut: 'Vitesse Réduite' 
+          } 
+        }
+      );
+    }
+
+    // Détermination de la surcharge
+    const isOverloaded = load > 75 || result.projectCount > 10;
 
     // 2. Mise à jour de MongoDB (Source de vérité biométrique)
     const updatedTeam = await TeamModel.findByIdAndUpdate(
-      teamId,
+      teamObjectId,
       { 
         $set: { 
-          "collectiveHealth.averageMentalLoad": Math.round(result.averageStress),
-          "collectiveHealth.isOverloaded": isOverloaded
+          "collectiveHealth.averageMentalLoad": load,
+          "collectiveHealth.isOverloaded": isOverloaded,
+          "settings.isGlobalReducedSpeed": isGlobalReducedSpeed // 👈 Mise à jour des réglages
         } 
       },
       { new: true }
@@ -50,11 +68,13 @@ export const HealthOrchestrator = {
         MATCH (t:Team {uid: $uid})
         SET t.averageMentalLoad = $load,
             t.isOverloaded = $isOverloaded,
+            t.isGlobalReducedSpeed = $isGlobalReducedSpeed,
             t.updatedAt = datetime()
       `, {
         uid: updatedTeam.uid,
-        load: Math.round(result.averageStress),
-        isOverloaded: isOverloaded
+        load: load,
+        isOverloaded: isOverloaded,
+        isGlobalReducedSpeed: isGlobalReducedSpeed
       });
     } finally {
       await session.close();

@@ -1,4 +1,4 @@
-import { TeamModel, UserModel, getNeo4jSession } from '@ilot/infrastructure';
+import { ITeam, TeamModel, UserModel, getNeo4jSession } from '@ilot/infrastructure';
 import { MoralChecker } from '../integrity/moral-checker';
 
 export class TeamOrchestrator {
@@ -184,28 +184,37 @@ export class TeamOrchestrator {
   /**
    * 🔄 PUT : Mutation du nid (Synchronisée Mongo/Neo4j)
    */
-  static async mutateTeam(teamUid: string, data: { nom?: string, description?: string }) {
+  static async mutateTeam(teamUid: string, data: Partial<ITeam>) {
     if (data.nom) {
       const check = MoralChecker.analyze(data.nom);
       if (!check.isSafe) throw new Error(`Nom invalide : ${check.suggestion}`);
     }
 
+    // On effectue la mise à jour dans Mongo
     const updatedTeam = await TeamModel.findOneAndUpdate(
       { uid: teamUid },
       { $set: data },
       { new: true }
     );
+    
     if (!updatedTeam) throw new Error("Nid introuvable pour la mutation.");
 
-    // Synchro Neo4j uniquement si le nom change
+    // Si le nom a changé, on synchronise Neo4j
     if (data.nom) {
       const session = getNeo4jSession();
       try {
-        await session.run(`MATCH (t:Team {mongodbId: $teamUid}) SET t.nom = $nom`, { teamUid, nom: data.nom });
+        await session.run(
+          `MATCH (t:Team {uid: $teamUid}) SET t.nom = $nom`, 
+          { teamUid, nom: data.nom }
+        );
       } finally {
         await session.close();
       }
     }
+
+    // 📉 On déclenche le HealthOrchestrator si besoin
+    // (Par exemple si la vitesse globale a été modifiée)
+    
     return updatedTeam;
   }
 

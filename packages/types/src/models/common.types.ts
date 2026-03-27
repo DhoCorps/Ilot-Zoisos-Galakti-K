@@ -25,7 +25,6 @@ export type IBaseNode = z.infer<typeof BaseNodeSchema>;
 
 // 📊 Constantes Globales
 export const StatutProjectSchema = z.enum(['Planifié', 'En Cours', 'Terminé', 'En Pause', 'Vitesse Réduite']);
-export const PriorityLevelSchema = z.enum(['trivial', 'easy', 'medium', 'hard', 'extreme', 'critical']);
-
+export const PriorityLevelSchema = z.enum(['trivial', 'easy', 'medium', 'hard', 'extreme', 'critical']); // 👈 Échelle complète
 // 👉 L'EXPORT MANQUANT POUR TASKS
 export const ComplexityLevelSchema = z.number().min(1).max(10).default(1);
