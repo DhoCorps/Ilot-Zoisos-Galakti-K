@@ -79,7 +79,7 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
       description: formData.get('description') as string,
       status: formData.get('status') as string,
       priority: formData.get('priority') as string,
-      teamId: selectedTeamId, // 👈 Le pivot exact attendu par Zod/Mongo
+      teamId: teamId, // 👈 Le pivot exact attendu par Zod/Mongo
       ownerId: ownerId,       // 👈 La clé exacte attendue
     };
 

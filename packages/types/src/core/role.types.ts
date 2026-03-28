@@ -23,6 +23,7 @@ export const ROLE_BADGES = {
 export type UserRole = keyof typeof ROLE_BADGES;
 
 export interface IRole {
+  uid: string;
   id: string;                
   name: string;              
   slug: string;              

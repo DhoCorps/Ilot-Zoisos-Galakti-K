@@ -13,7 +13,9 @@ interface RolesTabProps {
   projectId: string;
   initialRole?: string;
   initialCaps?: string[];
-  onSuccess?: () => void; // 🟢 LA CORRECTION EST ICI : Nouvelle propriété
+  onSuccess?: () => void;
+  // 🛡️ NOUVEAU : Le verrou de sécurité !
+  canManage: boolean; 
 }
 
 export const RolesTab = ({
@@ -22,7 +24,8 @@ export const RolesTab = ({
   projectId,
   initialRole = 'VIEWER',
   initialCaps = [],
-  onSuccess // 🟢 LA CORRECTION EST ICI
+  onSuccess,
+  canManage // 🛡️ On récupère la clé
 }: RolesTabProps) => {
   const { status } = useSession();
 
@@ -33,7 +36,8 @@ export const RolesTab = ({
   const [dbRoles, setDbRoles] = useState<IRole[]>([]);
   const [isLoadingRoles, setIsLoadingRoles] = useState(true);
 
-  const isAuthorized = status === "authenticated" || status === "loading";
+  // 🛡️ CORRECTION : On exige que l'utilisateur soit connecté ET qu'il ait le grade
+  const isAuthorized = status === "authenticated" && canManage;
 
   useEffect(() => {
     const fetchRolesFromDB = async () => {
@@ -83,10 +87,7 @@ export const RolesTab = ({
       });
       alert("L'oiseau a été mis à jour avec succès !");
       
-      // 🟢 LA CORRECTION EST ICI : On appelle onSuccess pour prévenir le parent
-      if (onSuccess) {
-        onSuccess();
-      }
+      if (onSuccess) onSuccess();
       
     } catch (error: any) {
       console.error("Erreur save:", error);
@@ -105,14 +106,19 @@ export const RolesTab = ({
         </div>
         <button
           onClick={handleSave}
-          disabled={isSaving || status === "unauthenticated"}
-          className="bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-bold py-3 px-6 rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-emerald-900/20 border border-emerald-500/50"
+          disabled={isSaving || !isAuthorized} // 🛡️ On verrouille le bouton
+          className="bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-bold py-3 px-6 rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-emerald-900/20 border border-emerald-500/50 disabled:cursor-not-allowed"
         >
           {isSaving ? 'Synchronisation...' : 'Enregistrer les modifications'}
         </button>
       </div>
 
       <div className={!isAuthorized ? "opacity-50 pointer-events-none grayscale transition-all" : "space-y-6"}>
+        {!isAuthorized && (
+          <div className="bg-red-900/30 border border-red-500/50 p-4 rounded-xl text-center mb-4">
+            <span className="text-red-400 font-bold text-sm">🔒 Accès restreint : Vous n'avez pas l'accréditation nécessaire pour modifier cette entité.</span>
+          </div>
+        )}
         <RoleForm 
           currentRole={role} 
           availableRoles={dbRoles} 

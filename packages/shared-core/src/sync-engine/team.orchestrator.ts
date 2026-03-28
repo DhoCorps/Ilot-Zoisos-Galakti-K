@@ -194,10 +194,14 @@ export class TeamOrchestrator {
     }
   }
 
-  static async removeMember(teamUid: string, targetUserUid: string) {
+  static async removeMember(teamUid: string, targetUserUid: string, requesterUid: string) {
+    // 🛡️ RÈGLE D'OR : On ne s'auto-expulse pas !
+    if (targetUserUid === requesterUid) {
+      throw new Error("🔒 Sécurité : Un oiseau ne peut pas s'expulser lui-même du nid.");
+    }
+
     const session = getNeo4jSession();
     try {
-      // 🛡️ FIX : Remplacement de mongodbId par uid
       const cypher = `
         MATCH (u:Oiseau {uid: $targetUserUid})-[r:MEMBER_OF]->(t:Team {uid: $teamUid})
         DELETE r
@@ -206,6 +210,29 @@ export class TeamOrchestrator {
       const result = await session.run(cypher, { targetUserUid, teamUid });
       if (result.records.length === 0) throw new Error("Impossible de bannir : oiseau introuvable.");
       return result.records[0].get('birdName');
+    } finally {
+      await session.close();
+    }
+  }
+
+  // 🚨 NOUVELLE MÉTHODE : Le Scanner d'Accréditation
+  static async getMemberRoleByEmail(teamUid: string, email: string): Promise<string | null> {
+    // 1. On trouve l'oiseau dans Mongo via son email de session
+    const user = await UserModel.findOne({ email }).lean();
+    if (!user) return null;
+
+    const session = getNeo4jSession();
+    try {
+      // 2. On interroge le Graphe pour connaître son grade exact dans ce Nid
+      const cypher = `
+        MATCH (u:Oiseau {uid: $userUid})-[r:MEMBER_OF]->(t:Team {uid: $teamUid})
+        RETURN r.role AS role
+      `;
+      const result = await session.run(cypher, { userUid: user.uid, teamUid });
+      
+      if (result.records.length === 0) return null; // N'est même pas dans le nid
+      
+      return result.records[0].get('role');
     } finally {
       await session.close();
     }

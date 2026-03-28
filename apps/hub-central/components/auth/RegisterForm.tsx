@@ -1,74 +1,67 @@
-'use client';
+import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
+import { connectToDatabase, UserModel } from "@ilot/infrastructure"; 
+import { SyncOrchestrator, MoralChecker } from "@ilot/shared-core";
+import bcrypt from 'bcryptjs';
 
-import { useState } from "react";
-import { useRouter, Link } from "../../navigation"; 
-import { auth } from "../../lib/apiClient"; 
+export async function POST(req: Request) {
+  try {
+    const { email, password, username } = await req.json();
 
-export default function RegisterForm() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    
-    const formData = new FormData(e.currentTarget);
-    const data = Object.fromEntries(formData);
-    
-    try {
-      await auth.register(data);
-      router.push('/auth/login?registered=true');
-    } catch (err: any) {
-      setError(err.message || "L'envol a échoué.");
-    } finally {
-      setLoading(false);
+    // 🛡️ 1. Moral Check
+    const analysis = MoralChecker.analyze(username);
+    if (!analysis.isSafe) {
+      return NextResponse.json({ 
+        error: analysis.suggestion || "Ce nom d'oiseau n'est pas autorisé sur l'Îlot." 
+      }, { status: 400 });
     }
-  };
 
-  return (
-    <div className="w-full max-w-md p-8 bg-slate-900/50 border border-emerald-500/30 rounded-2xl backdrop-blur-xl shadow-2xl nexus-card">
-      <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 mb-6 text-center uppercase tracking-wider">
-        Rejoindre la Volée
-      </h2>
-      
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="block text-sm font-medium text-emerald-400 mb-1">Nom d'oiseau (Pseudo)</label>
-          <input 
-            name="username" 
-            type="text" 
-            required 
-            className="w-full px-4 py-3 bg-slate-950/50 border border-slate-800 rounded-lg text-slate-200 placeholder-slate-600 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all shadow-inner" 
-            placeholder="Zoizo_Bleu" 
-          />
-        </div>
-        
-        {/* Tu pourras ajouter tes autres champs (email, mot de passe) ici avec exactement les mêmes classes que l'input du dessus */}
-        
-        {error && (
-          <div className="p-3 rounded-lg bg-red-900/20 border border-red-500/30 text-red-400 text-sm font-medium text-center backdrop-blur-sm">
-            {error}
-          </div>
-        )}
+    await connectToDatabase();
 
-        <button 
-          type="submit" 
-          disabled={loading} 
-          className={`w-full py-3 rounded-lg text-white font-bold transition-all shadow-lg ${
-            loading 
-              ? 'bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-700' 
-              : 'bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 shadow-emerald-900/40 hover:shadow-cyan-900/40 border border-emerald-500/50'
-          }`}
-        >
-          {loading ? "Création du profil..." : "Prendre son envol"}
-        </button>
-      </form>
+    // 🛡️ 2. Vérification des doublons
+    const existingUser = await UserModel.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) {
+      return NextResponse.json({ error: 'Email ou Username déjà pris' }, { status: 400 });
+    }
 
-      <div className="mt-6 text-center text-slate-400 text-sm">
-        Déjà un nid ? <Link href="/auth/login" className="text-emerald-400 hover:text-cyan-400 hover:underline transition-colors">Se connecter</Link>
-      </div>
-    </div>
-  );
+    // 🛡️ 3. Préparation et Écriture MongoDB
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const mongoId = new mongoose.Types.ObjectId();
+    const userUid = mongoId.toHexString(); // On définit l'UID technique ici
+
+    const newUser = new UserModel({ 
+      _id: mongoId,
+      uid: userUid, 
+      email: email.toLowerCase(), 
+      username, 
+      password: hashedPassword,
+      role: "BATISSEUR", 
+      signature: "<(:<" 
+    });
+    
+    const savedUser = await newUser.save(); 
+    console.log("✅ [MongoDB] L'oiseau est niché :", savedUser.uid);
+
+    // 🛡️ 4. Synchronisation via l'Orchestrator (Neo4j)
+    // SUTURE : On envoie 'uid' et non 'mongodbId' pour rester cohérent avec le graphe
+    try {
+      await SyncOrchestrator.syncUserCreation({ 
+        uid: userUid,
+        username: savedUser.username,
+        role: savedUser.role 
+      });
+      console.log("🔥 [Neo4j] POINT MARQUÉ : Graphe synchronisé.");
+    } catch (syncError) {
+      console.error("⚠️ [Sync Engine] Échec de la suture Neo4j :", syncError);
+    }
+
+    return NextResponse.json({ 
+      message: "L'oiseau a pris son envol !", 
+      user: { uid: savedUser.uid, username: savedUser.username } 
+    }, { status: 201 });
+
+  } catch (error) {
+    console.error("💥 [Register Error] :", error);
+    return NextResponse.json({ error: "Erreur lors de l'incubation." }, { status: 500 });
+  }
 }

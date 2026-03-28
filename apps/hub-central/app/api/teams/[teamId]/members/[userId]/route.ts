@@ -1,31 +1,31 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../../../../../lib/auth"; // 🟢 IMPORTANT : N'oublie pas le cerveau !
+import { authOptions } from "../../../../../../lib/auth"; 
 import { TeamOrchestrator } from "@ilot/shared-core";
 
 export const dynamic = 'force-dynamic';
 
+// 🟢 MISE À JOUR (PATCH) : Promotion en ADMIN
 export async function PATCH(
   req: Request,
   { params }: { params: { teamId: string, userId: string } }
 ) {
   try {
-    // 🛡️ La Douane (Même vérification que pour le DELETE)
-    let session;
-    if (process.env.NODE_ENV === 'test') {
-      session = { user: { email: "test-bird@ilot.fr", uid: "test-admin-uid" } };
-    } else {
-      const { authOptions } = await import("../../../../../../lib/auth");
-      session = await getServerSession(authOptions);
-    }
+    const session = await getServerSession(authOptions);
 
-    if (!session) {
+    if (!session || !session.user) {
       return NextResponse.json({ error: "Accès refusé. Autorisation requise." }, { status: 401 });
     }
 
     const { teamId, userId } = params;
+    const requesterEmail = session.user.email;
 
-    // 👑 Appel à l'Orchestrateur pour la promotion
+    // 🛡️ Sceau de Feu : Seul un ADMIN ou BATISSEUR peut promouvoir
+    const requesterRole = await TeamOrchestrator.getMemberRoleByEmail(teamId, requesterEmail!);
+    if (requesterRole !== 'ADMIN' && requesterRole !== 'BATISSEUR') {
+      return NextResponse.json({ error: "🔒 Droits insuffisants pour promouvoir." }, { status: 403 });
+    }
+
     const promotion = await TeamOrchestrator.promoteToAdmin(teamId, userId);
     
     return NextResponse.json({ 
@@ -36,33 +36,35 @@ export async function PATCH(
 
   } catch (error: any) {
     console.error("❌ [API PROMOTE MEMBER] Erreur :", error.message);
-    const status = error.message.includes("n'a pas encore rejoint") ? 404 : 500;
-    return NextResponse.json({ error: error.message }, { status });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
+// 🔴 SUPPRESSION (DELETE) : Bannissement du membre
 export async function DELETE(
   req: Request,
   { params }: { params: { teamId: string, userId: string } }
 ) {
   try {
-    // 🛡️ La Douane
-    let session;
-    if (process.env.NODE_ENV === 'test') {
-      session = { user: { email: "test-bird@ilot.fr", uid: "test-admin-uid" } };
-    } else {
-      // 🟢 On passe authOptions ici !
-      session = await getServerSession(authOptions);
-    }
+    const session = await getServerSession(authOptions);
 
-    if (!session) {
+    if (!session || !session.user) {
       return NextResponse.json({ error: "Accès refusé. Autorisation de bannissement requise." }, { status: 401 });
     }
 
-    const { teamId, userId } = params;
+    const { teamId, userId } = params; // userId est l'oiseau ciblé
+    const requesterUid = (session.user as any).uid;
+    const requesterEmail = session.user.email;
 
-    // 🏗️ Appel à l'Orchestrateur
-    const birdName = await TeamOrchestrator.removeMember(teamId, userId);
+    // 🛡️ Sceau de Feu : Vérification des droits du demandeur
+    const requesterRole = await TeamOrchestrator.getMemberRoleByEmail(teamId, requesterEmail!);
+    if (requesterRole !== 'ADMIN' && requesterRole !== 'BATISSEUR') {
+      return NextResponse.json({ error: "🔒 Droits insuffisants pour bannir." }, { status: 403 });
+    }
+
+    // 🏗️ Appel à l'Orchestrateur avec le Sceau de Préservation (requesterUid)
+    // On récupère le nom de l'oiseau pour le message final
+    const birdName = await TeamOrchestrator.removeMember(teamId, userId, requesterUid);
     
     return NextResponse.json({ 
       success: true, 
@@ -71,7 +73,8 @@ export async function DELETE(
 
   } catch (error: any) {
     console.error("❌ [API BAN MEMBER] Erreur :", error.message);
-    const status = error.message.includes("fait pas partie") ? 404 : 500;
-    return NextResponse.json({ error: error.message }, { status });
+    // Gestion propre de l'erreur anti-suicide
+    const isForbidden = error.message.includes("Sécurité") || error.message.includes("Droits");
+    return NextResponse.json({ error: error.message }, { status: isForbidden ? 403 : 500 });
   }
 }

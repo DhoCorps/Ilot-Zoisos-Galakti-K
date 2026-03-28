@@ -1,7 +1,11 @@
-import { runQuery } from '../neo4j'; // Plus besoin de getNeo4jDriver ici
-import { UserModel } from '../models/nosql/user.model';       // 👈 BUG 1 CORRIGÉ (sans accolades)
-import { ProjectModel } from '../models/nosql/project.model'; // 👈 BUG 1 CORRIGÉ (sans accolades)
+import { runQuery } from '../neo4j'; 
+import { UserModel } from '../models/nosql/user.model';
+import { ProjectModel } from '../models/nosql/project.model';
 import { ProjectRole } from '@ilot/types';
+
+/**
+ * 👤 SYNCHRONISATION OISEAU (User)
+ */
 export const syncUserToGraph = async (user: any) => {
   const cypher = `
     MERGE (u:User {uid: $uid})
@@ -13,12 +17,10 @@ export const syncUserToGraph = async (user: any) => {
   `;
   
   try {
-    // 🛡️ Correction : On s'assure de mapper 'uid' sur '_id' si nécessaire
-    // et on garantit que 'email' est présent.
     await runQuery(cypher, {
       uid: user.uid || user._id?.toString(), 
       username: user.username,
-      email: user.email, // C'est ce paramètre qui manquait !
+      email: user.email, 
       avatarUrl: user.avatarUrl || null
     });
     console.log(`✨ [Graphe] Sync réussie pour l'oiseau : ${user.username}`);
@@ -30,21 +32,24 @@ export const syncUserToGraph = async (user: any) => {
 
 /**
  * 🎖️ SYNCHRONISATION RÔLE
+ * ⚡ FIX : Harmonisation de 'id' vers 'uid' pour matcher l'Orchestrateur et RoleForm
  */
 export const syncRoleToGraph = async (role: any) => {
   const cypher = `
-    MERGE (r:Role {id: $id})
-    SET r.intitule = $intitule,
+    MERGE (r:Role {uid: $uid}) 
+    SET r.name = $name,
         r.color = $color,
         r.updatedAt = datetime()
     RETURN r
   `;
   try {
+    // On s'assure d'utiliser les clés définies dans ton nouveau modèle 'Role'
     await runQuery(cypher, {
-      id: role.id || role._id?.toString(),
-      intitule: role.intitule,
+      uid: role.uid || role._id?.toString(),
+      name: role.name || role.intitule,
       color: role.color || '#6366f1'
     });
+    console.log(`✅ [Graphe] Rôle synchronisé : ${role.name || role.intitule}`);
   } catch (error) {
     console.error("❌ Erreur syncRoleToGraph :", error);
     throw error;
@@ -79,7 +84,7 @@ export const inviteMember = async (teamUid: string, userEmail: string, initialCa
  */
 export const updateProjectSync = async (uid: string, data: any) => {
   try {
-    const finaltitle = data.title || data.name; // On sécurise la bascule
+    const finaltitle = data.title || data.name;
 
     // 1. Mise à jour MongoDB
     const updatedMongo = await ProjectModel.findOneAndUpdate(
@@ -95,7 +100,7 @@ export const updateProjectSync = async (uid: string, data: any) => {
 
     if (!updatedMongo) throw new Error("Projet introuvable dans MongoDB.");
 
-    // 2. Mise à jour Neo4j (👈 BUG 2 CORRIGÉ : On utilise 'title')
+    // 2. Mise à jour Neo4j
     const cypher = `
       MATCH (p:Project {uid: $uid})
       SET p.title = $title, p.updatedAt = datetime()
@@ -109,6 +114,7 @@ export const updateProjectSync = async (uid: string, data: any) => {
     throw error;
   }
 };
+
 /**
  * 🔐 DROITS DANS LE GRAPHE (Relation User -> Project)
  */
@@ -116,7 +122,7 @@ export const updateUserProjectCapabilities = async (
   projectUid: string,
   targetUserUid: string,
   newRole: ProjectRole,
-  newCaps: string[] // 👈 On utilise string[] ici pour correspondre à tes PowerLevelGroups
+  newCaps: string[]
 ) => {
   const cypher = `
     MATCH (u:User {uid: $userUid})
@@ -146,7 +152,6 @@ export const updateUserProjectCapabilities = async (
     throw error;
   }
 };
-
 
 /**
  * 🧹 DELETE BIRD

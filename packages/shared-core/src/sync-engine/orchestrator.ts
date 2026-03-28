@@ -1,4 +1,3 @@
-import { MoralChecker } from '../integrity/moral-checker';
 import { baguerOiseau } from '@ilot/infrastructure'; 
 
 export interface SyncResult {
@@ -10,23 +9,24 @@ export interface SyncResult {
 export class SyncOrchestrator {
   /**
    * Synchronise un nouvel utilisateur entre Mongo et Neo4j
-   * On bague l'oiseau pour qu'il existe dans le réseau social de l'Îlot
+   * On bague l'oiseau avec son UID technique unique
    */
   static async syncUserCreation(userData: { 
-    mongodbId: string; 
+    uid: string; 
     username: string; 
     role: string 
   }) {
     console.log(`✨ [Orchestrator] Début du baguage pour l'oiseau : ${userData.username}`);
     
     try {
+      // On transmet le UID à la fonction d'infrastructure
       const node = await baguerOiseau({
-        mongodbId: userData.mongodbId,
+        uid: userData.uid,
         username: userData.username,
         role: userData.role
       });
       
-      console.log(`✅ [Orchestrator] Baguage réussi dans Neo4j pour l'ID: ${userData.mongodbId}`);
+      console.log(`✅ [Orchestrator] Baguage réussi dans Neo4j pour l'UID: ${userData.uid}`);
 
       return { 
         status: 'success' as const, 
@@ -35,18 +35,8 @@ export class SyncOrchestrator {
         data: node 
       };
     } catch (error) {
-      console.error(`🔥 [Sync Error] Échec du baguage Neo4j :`, error);
-      throw error; 
+      console.error(`🔥 [Sync Error] Échec du baguage Neo4j pour ${userData.username}:`, error);
+      throw error;
     }
-  }
-
-  static async validateAndSync(content: string, action: () => Promise<any>) {
-    const analysis = MoralChecker.analyze(content);
-    
-    if (!analysis.isSafe) {
-      throw new Error(`Action bloquée par le MoralChecker : ${analysis.suggestion}`);
-    }
-
-    return await action();
   }
 }

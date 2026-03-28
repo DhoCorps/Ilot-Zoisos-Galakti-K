@@ -9,29 +9,44 @@ export async function POST(req: Request) {
     if (process.env.NODE_ENV === 'test') {
       session = { user: { email: "test-bird@ilot.fr" } };
     } else {
-      session = await getServerSession();
+      session = await getServerSession(); // Assure-toi d'avoir (authOptions) ici si nécessaire dans ta config
     }
 
-    if (!session) {
+    if (!session || !session.user || !session.user.email) {
       return NextResponse.json({ error: "Accès refusé. L'oiseau n'est pas identifié." }, { status: 401 });
     }
 
     await connectToDatabase();
     const body = await req.json();
     
-    // On extrait les données, y compris le nouveau tableau optionnel de permissions
     const { teamId, email, role, permissions } = body;
 
     if (!teamId || !email || !role) {
       return NextResponse.json({ error: "Les données d'invitation sont incomplètes." }, { status: 400 });
     }
 
-    // 🏗️ Appel à l'Orchestrateur
+    // ==========================================================
+    // 🚨 LE SCEAU DE FEU : VÉRIFICATION D'AUTORISATION BACK-END
+    // ==========================================================
+    const requesterEmail = session.user.email;
+    
+    const requesterRole = await TeamOrchestrator.getMemberRoleByEmail(teamId, requesterEmail);
+    
+    // Si l'oiseau n'a pas de rôle, ou s'il n'est ni ADMIN ni BATISSEUR
+    if (requesterRole !== 'ADMIN' && requesterRole !== 'BATISSEUR') {
+      console.warn(`🚨 Tentative de putsch bloquée ! L'oiseau ${requesterEmail} a essayé de modifier le Nid ${teamId}`);
+      return NextResponse.json({ 
+        error: "🔒 ALERTE SÉCURITÉ : Vous n'avez pas l'accréditation pour modifier cette escouade." 
+      }, { status: 403 });
+    }
+    // ==========================================================
+
+    // 🏗️ Appel à l'Orchestrateur (Seulement si le Sceau de Feu a laissé passer)
     await TeamOrchestrator.inviteMember(teamId, email, role, permissions || []);
 
     return NextResponse.json({ 
       success: true, 
-      message: `L'oiseau a été invité avec succès dans le nid avec le rôle ${role}.` 
+      message: `L'oiseau a été mis à jour avec succès dans le nid avec le rôle ${role}.` 
     }, { status: 200 });
 
   } catch (error: any) {
