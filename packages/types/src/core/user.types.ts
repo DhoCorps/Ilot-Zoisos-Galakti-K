@@ -9,7 +9,7 @@ export const UserSchema = z.object({
   username: z.string().min(3, "Le nom d'oiseau doit avoir au moins 3 caractères"),
   email: z.string().email("Email invalide"),
   password: z.string().min(8).optional(),
-  
+  jobTitle: z.string().optional(),
   name: z.string().optional(),
   avatar: z.string().url().optional().or(z.literal('')),
   
@@ -28,6 +28,16 @@ export const UserSchema = z.object({
     mentalLoadScore: z.number().min(0).max(100).default(0),
     lastCheckIn: z.union([z.string(), z.date()]).optional(),
   }).default({ mentalLoadScore: 0 }),
+
+  moderation: z.object({
+    reportCount: z.number().default(0),
+    isFlagged: z.boolean().default(false)
+  }).default({ reportCount: 0, isFlagged: false }),
+
+  collectiveData: z.object({
+    optIn: z.boolean().default(true),
+    contributionScore: z.number().default(0)
+  }).default({ optIn: true, contributionScore: 0 }),
 
   settings: z.record(z.string(), z.any()).default({}),
   

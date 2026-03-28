@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
-import { connectToDatabase } from '../../mongoose';;
+import { connectToDatabase } from '../../mongoose';
 
 // ⚡ AUTO-CONNEXION : On s'assure que MongoDB est réveillé dès l'import du modèle
 connectToDatabase().catch((err: Error) => 

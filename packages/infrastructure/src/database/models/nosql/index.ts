@@ -1,7 +1,7 @@
 import mongoose, { Schema, Model } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 // Ligne 3 : Remonte jusqu'au package core pour choper User
-import { IUser } from "@ilot/types";;
+import { IUser } from "@ilot/types";
 
 // Ligne 4 : Remonte jusqu'au dossier lib pour la base de données
 import { connectToDatabase } from '../../mongoose';
@@ -33,7 +33,7 @@ const UserSchema = new Schema({
 
   // --- 🔐 SÉCURITÉ & ROLES ---
   // Excellent : on utilise maintenant des ObjectIds vers la collection Role !
-  roles: [{ type: Schema.Types.ObjectId as any as any, ref: 'Role' }],
+  roles: [{ type: Schema.Types.ObjectId, ref: 'Role' }],
 
   // --- 🧠 MODULES L-ILOT-ZOIZOS ---
   moderation: {

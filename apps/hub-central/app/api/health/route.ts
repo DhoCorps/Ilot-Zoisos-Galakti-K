@@ -24,15 +24,18 @@ export async function GET() {
   }
 
   // 🕸️ 2. Test du pouls Neo4j
+
+  const session = getNeo4jSession();
+
   try {
-    const session = getNeo4jSession();
     // On lance la requête la plus légère possible pour vérifier la connexion Bolt
     await session.run('RETURN 1 AS pulse');
-    await session.close();
     status.neo4j = 'UP';
   } catch (error) {
     console.error("🚨 [HEALTH] Neo4j est injoignable :", error);
     isHealthy = false;
+  }finally {
+    await session.close();
   }
 
   // 3. Réponse du Hub Central

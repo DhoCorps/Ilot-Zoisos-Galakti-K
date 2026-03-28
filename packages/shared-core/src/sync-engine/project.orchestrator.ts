@@ -29,7 +29,7 @@ export const ProjectOrchestrator = {
 
       // 2. NEO4J
       const cypher = `
-        MATCH (u:Oiseau {uid: $ownerUid}) // 👈 Alignement sur l'univers Galakti-K
+        MATCH (u:User {uid: $ownerUid})
         OPTIONAL MATCH (t:Team {uid: $teamId})
         OPTIONAL MATCH (parentP:Project {uid: $parentId})
         
