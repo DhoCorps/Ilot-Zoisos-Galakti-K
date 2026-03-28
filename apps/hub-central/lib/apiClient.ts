@@ -16,32 +16,33 @@ interface ApiResponse<T> {
  * ⚡ LE SOUFFLE DE ZONZON (apiFetch)
  */
 async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const isFormData = options.body instanceof FormData;
+  
+  // 🛡️ FIX : On laisse le navigateur gérer 100% des headers si c'est un FormData
+  // (Il doit y injecter le "boundary" obligatoire)
+  const headers = new Headers(options.headers);
+  if (!isFormData && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
   const res = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
-    credentials: 'include', 
-    headers: { 
-      // Si c'est un fichier (FormData), le navigateur gère le Content-Type
-      ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-      ...options.headers,
-    },
+    credentials: 'include',
+    headers, // 👈 Application propre des headers
   });
 
-  // Gestion des réponses sans corps (ex: DELETE ou 204)
   if (res.status === 204) return {} as T;
 
   const responseData = await res.json().catch(() => ({})) as ApiResponse<T>;
   
   if (!res.ok) {
-    // 🟢 Amélioration : on capte .error ET .message
     const errorMessage = responseData.error || responseData.message || `L'oiseau s'est cogné contre la vitre: ${res.status}`;
     console.error(`🚨 Perturbation sur ${endpoint}:`, errorMessage);
     throw new Error(errorMessage);
   }
 
-  // Si l'API renvoie un objet enveloppé dans "data", on l'extrait, sinon on renvoie tout
   return (responseData.data !== undefined ? responseData.data : responseData) as T;
 }
-
 /**
  * 🔑 MODULE : FORGE DES ACCÈS (Auth)
  */

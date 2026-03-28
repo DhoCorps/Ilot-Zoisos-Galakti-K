@@ -35,7 +35,7 @@ export const TransactionManager = {
       await neo4jTx.rollback();
       
       console.error(`❌ [NEXUS] Brèche détectée sur : ${operationName}. Rollback exécuté pour préserver l'Îlot.`);
-      throw error; // On propage l'erreur pour que l'interface affiche "Création impossible"
+      throw error; 
 
     } finally {
       // 5. Nettoyage des canaux de communication

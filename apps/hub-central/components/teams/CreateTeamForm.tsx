@@ -2,18 +2,18 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react'; // 🔑 Crucial pour l'owner
+import { useSession } from 'next-auth/react'; 
 import { teams } from '../../lib/apiClient'; 
-import { Loader2, ShieldPlus, TextQuote, Fingerprint, Activity, Lock, Globe } from 'lucide-react';
+import { Loader2, ShieldPlus, TextQuote, Fingerprint, Lock, Globe } from 'lucide-react';
 
 interface CreateTeamFormProps {
   onSuccess?: () => void;
-  parentTeamId?: string | null;
+  parentId?: string | null; // 🛡️ Harmonisé avec le reste de l'architecture
 }
 
-export function CreateTeamForm({ onSuccess, parentTeamId = null }: CreateTeamFormProps) {
+export function CreateTeamForm({ onSuccess, parentId = null }: CreateTeamFormProps) {
   const router = useRouter();
-  const { data: session } = useSession(); // On récupère l'identité de l'oiseau
+  const { data: session } = useSession(); 
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,24 +28,26 @@ export function CreateTeamForm({ onSuccess, parentTeamId = null }: CreateTeamFor
     setIsPending(true);
     setError(null);
 
-    // Extraction de l'UID du créateur
-    const userId = (session?.user as any)?.uid || (session?.user as any)?._id;
+    // Extraction de la signature thermique
+    const userId = (session?.user as any)?.uid || (session?.user as any)?._id || (session?.user as any)?.id;
 
     if (!userId) {
-      setError("Protocole interrompu : Entité créatrice non identifiée.");
+      setError("Protocole interrompu : Signature thermique non identifiée.");
       setIsPending(false);
       return;
     }
 
     try {
-      // 🧬 Forge de l'objet Team aligné sur l'Ilot Zoizos
+      // 🧬 Forge de l'objet Team aligné sur le Nexus
       const newTeam = await teams.create({
         name: formData.name,
         description: formData.description,
-        ownerId: userId, // On injecte le créateur
-        parentId: parentTeamId, // Pour la hiérarchie des nids
-        collectiveHealth: { isOverloaded: false },
-        moderation: { isFlagged: false }
+        parentId: parentId || undefined, 
+        creatorUid: userId, // 👈 Match l'attente de l'API
+        settings: {
+          allowSearch: !formData.isPrivate,
+          isGlobalReducedSpeed: false
+        }
       });
 
       if (onSuccess) {
@@ -62,29 +64,29 @@ export function CreateTeamForm({ onSuccess, parentTeamId = null }: CreateTeamFor
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto p-1 bg-[#05070A]">
+    <div className="w-full max-w-xl mx-auto p-8 bg-[#05070A] border border-slate-900 rounded-3xl shadow-2xl">
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* Header du Formulaire */}
-        <div className="flex items-center gap-4 mb-8">
+        {/* HEADER DE LA FORGE */}
+        <div className="flex items-center gap-4 mb-8 border-b border-slate-900 pb-6">
           <div className="p-3 bg-red-950/20 rounded-xl border border-red-900/30">
-            <ShieldPlus className="w-6 h-6 text-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)]" />
+            <ShieldPlus className="w-6 h-6 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-100 tracking-tight uppercase">Tresser un Nid</h2>
             <p className="text-[10px] font-mono text-slate-500 uppercase tracking-[0.2em] mt-1">
-              {parentTeamId ? `Sous-Nid de l'entité ${parentTeamId.substring(0,8)}` : "Initialisation Racine"}
+              {parentId ? `SUTURE DE SOUS-NID : ${parentId.substring(0,8)}` : "INITIALISATION RACINE"}
             </p>
           </div>
         </div>
 
         {error && (
-          <div className="p-4 bg-red-950/20 border border-red-900/40 rounded-xl text-red-400 text-[10px] font-mono uppercase tracking-wider animate-pulse">
+          <div className="p-4 bg-red-950/10 border border-red-900/40 rounded-xl text-red-400 text-[10px] font-mono uppercase tracking-wider animate-in fade-in slide-in-from-top-2">
             ⚠️ {error}
           </div>
         )}
 
-        {/* Champ NOM */}
+        {/* IDENTIFIANT DU NID */}
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-[10px] font-mono text-slate-500 uppercase tracking-[0.2em] ml-1">
             <Fingerprint className="w-3 h-3 text-red-500" /> Identifiant du Nid
@@ -95,11 +97,11 @@ export function CreateTeamForm({ onSuccess, parentTeamId = null }: CreateTeamFor
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="EX: LA CANOPÉE CENTRALE"
-            className="w-full px-4 py-3 bg-slate-900/40 border border-slate-800 rounded-xl text-slate-200 outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20 transition-all placeholder:text-slate-800 font-bold"
+            className="w-full px-4 py-3 bg-slate-900/40 border border-slate-800 rounded-xl text-slate-200 outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20 transition-all placeholder:text-slate-800 font-bold uppercase"
           />
         </div>
 
-        {/* Champ DESCRIPTION */}
+        {/* MISSION & INSCRIPTION */}
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-[10px] font-mono text-slate-500 uppercase tracking-[0.2em] ml-1">
             <TextQuote className="w-3 h-3 text-red-500" /> Mission & Inscription
@@ -113,13 +115,17 @@ export function CreateTeamForm({ onSuccess, parentTeamId = null }: CreateTeamFor
           />
         </div>
 
-        {/* Toggle Confidentialité - Unifié avec le style Galakti-K */}
+        {/* VISIBILITÉ (STYLE GALAKTI-K) */}
         <div className="flex items-center justify-between p-4 bg-slate-900/20 border border-slate-800/60 rounded-xl group hover:border-slate-700 transition-colors">
           <div className="flex items-center gap-3">
             {formData.isPrivate ? <Lock className="w-4 h-4 text-red-500" /> : <Globe className="w-4 h-4 text-slate-500" />}
             <div>
-              <p className="text-xs font-bold text-slate-300 uppercase tracking-wide">Visibilité Furtive</p>
-              <p className="text-[9px] text-slate-600 font-mono uppercase">Mode Ghost activé pour ce nid</p>
+              <p className="text-xs font-bold text-slate-300 uppercase tracking-wide">
+                {formData.isPrivate ? "Visibilité Furtive" : "Visibilité Publique"}
+              </p>
+              <p className="text-[9px] text-slate-600 font-mono uppercase">
+                {formData.isPrivate ? "Mode Ghost activé pour ce nid" : "Visible dans la canopée"}
+              </p>
             </div>
           </div>
           <button
@@ -131,7 +137,7 @@ export function CreateTeamForm({ onSuccess, parentTeamId = null }: CreateTeamFor
           </button>
         </div>
 
-        {/* Bouton de validation */}
+        {/* BOUTON D'INJECTION TRANSACTIONNELLE */}
         <button
           type="submit"
           disabled={isPending || formData.name.length < 3}
@@ -143,7 +149,7 @@ export function CreateTeamForm({ onSuccess, parentTeamId = null }: CreateTeamFor
               <span>Suture du Graphe...</span>
             </>
           ) : (
-            <span>Tresser le fragment</span>
+            <span>Tresser le fragment →</span>
           )}
         </button>
       </form>

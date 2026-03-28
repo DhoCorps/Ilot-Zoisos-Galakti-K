@@ -3,10 +3,6 @@ import { TransactionManager } from './transactionManager';
 
 export class RoleOrchestrator {
   
-  // ==========================================
-  // 🛡️ GESTION DES PERMISSIONS (Le Dictionnaire Mongo)
-  // ==========================================
-
   static async createPermission(data: { intitule: string, code: string, description?: string }) {
     return await PermissionModel.create(data);
   }
@@ -24,22 +20,15 @@ export class RoleOrchestrator {
     return perm;
   }
 
-  // ==========================================
-  // 🎖️ GESTION DES RÔLES (L'hybridation Mongo/Neo4j sous Sceau)
-  // ==========================================
-
   static async createRole(data: { intitule: string, description?: string, status?: string, isSystem?: boolean, permissions?: any[] }) {
     const intituleNormalise = data.intitule.toUpperCase();
 
     return await TransactionManager.execute("Forge de Grade", async (mongoSession, neo4jTx) => {
-      
-      // 1. Sauvegarde détaillée dans MongoDB (Le Passeport)
       const [newRole] = await RoleModel.create([{
         ...data,
         intitule: intituleNormalise
       }], { session: mongoSession });
 
-      // 2. LE SMASH VERS NEO4J (Le Nœud de Référence Global)
       const cypher = `
         MERGE (r:Role { mongodbId: $uid })
         ON CREATE SET r.intitule = $intitule, r.createdAt = datetime()

@@ -67,9 +67,11 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Chant incorrect.");
         }
 
+        console.log(`🦅 [Auth] Identification réussie pour l'oiseau : ${user.username}`);
+
         return {
           id: user._id.toString(),
-          uid: user.uid || user._id.toString(),
+          uid: user.uid || user._id.toString(), // On garantit l'UID
           email: user.email,
           name: user.username,
           role: user.role,
@@ -80,6 +82,7 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
+      // 🛡️ Le 'user' n'est présent qu'au moment du login initial
       if (user) {
         token.id = user.id;
         token.uid = user.uid;
@@ -90,11 +93,11 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        // On aligne les propriétés optionnelles du token vers la session
-        session.user.id = token.id;
-        session.user.uid = token.uid;
-        session.user.role = token.role;
-        session.user.signature = token.signature;
+        // 🛡️ On s'assure de ne jamais écraser avec du vide
+        session.user.id = token.id as string;
+        session.user.uid = token.uid as string;
+        session.user.role = token.role as string;
+        session.user.signature = token.signature as string;
       }
       return session;
     },

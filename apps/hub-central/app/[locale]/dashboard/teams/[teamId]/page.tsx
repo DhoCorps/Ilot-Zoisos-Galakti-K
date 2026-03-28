@@ -17,6 +17,8 @@ export default function TeamDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  
+  // 🛡️ FIX : On s'assure que allBirds est toujours un tableau
   const [allBirds, setAllBirds] = useState<any[]>([]);
 
   // États pour les modales
@@ -56,14 +58,17 @@ export default function TeamDetailsPage() {
   const fetchAllBirds = async () => {
     try {
       const response = await users.getAll() as any;
+      
+      // 🛡️ SÉCURITÉ : On gère tous les formats de réponse possibles de ton API
       let birdArray = [];
       if (Array.isArray(response)) {
         birdArray = response;
-      } else if (response.data && Array.isArray(response.data)) {
+      } else if (response?.data && Array.isArray(response.data)) {
         birdArray = response.data;
-      } else if (response.users && Array.isArray(response.users)) {
+      } else if (response?.users && Array.isArray(response.users)) {
         birdArray = response.users;
       }
+      
       setAllBirds(birdArray);
     } catch (err) {
       console.error("Erreur lors de la récupération du grand troupeau :", err);
@@ -76,30 +81,40 @@ export default function TeamDetailsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId]);
 
+  console.log("🦅 1. Le Grand Troupeau (API) :", allBirds);
+  console.log("🛡️ 2. Membres actuels du nid :", members);
+
+  // 🛡️ FIX : On filtre de manière robuste pour ne proposer que les oiseaux non membres
   const availableBirds = allBirds.filter((bird) => {
+    if (!bird || !bird.email) return false;
     return !members.some((member) => member.email === bird.email || member.uid === bird.uid);
   });
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteEmail || inviteEmail.trim() === '') {
-      alert("Veuillez sélectionner un identifiant.");
+      alert("Veuillez sélectionner un identifiant valide.");
       return;
     }
+    
     try {
       setIsInviting(true);
+      // 🛡️ FIX : On s'assure que l'appel API est propre. 
+      // Assure-toi que la route /api/teams/[teamId]/members gère le POST !
       await teams.invite({
         teamId: teamId,
         email: inviteEmail.trim(),
         role: inviteRole
       });
+      
       setIsInviteModalOpen(false);
       setInviteEmail('');
       setInviteRole('BATISSEUR'); 
-      await fetchTeamMembers();
+      await fetchTeamMembers(); // On rafraîchit la liste pour voir le nouvel oiseau
+      
     } catch (err: any) {
       console.error("Erreur d'invitation :", err);
-      alert(err.message || "Entité introuvable dans la matrice.");
+      alert(err.message || "Entité introuvable dans la matrice ou route API manquante.");
     } finally {
       setIsInviting(false);
     }
@@ -172,7 +187,7 @@ export default function TeamDetailsPage() {
         </div>
       </div>
 
-      {/* SECTION : CHANTIERS (FRAGMENTS) - LA RESPONSABILITÉ DE L'ESCOUADE */}
+      {/* SECTION : CHANTIERS (FRAGMENTS) */}
       <div className="bio-card p-6 border-slate-800/60 relative z-10">
         <div className="flex items-center justify-between mb-6 border-b border-slate-800/50 pb-4">
           <div className="flex items-center gap-3">
@@ -298,36 +313,66 @@ export default function TeamDetailsPage() {
             </button>
             <h2 className="text-xl font-bold text-slate-100 mb-6 tracking-tight">Connecter une Entité</h2>
             <form onSubmit={handleInvite} className="space-y-5">
+              
+              {/* SÉLECTEUR DYNAMIQUE DES OISEAUX */}
               <div>
                 <label className="block text-xs font-mono text-slate-400 mb-2 uppercase tracking-widest">Identifiant Cible</label>
-                <select
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-slate-200 outline-none focus:border-red-500 text-sm appearance-none cursor-pointer"
-                  required
-                >
-                  <option value="" disabled>-- Scanner les profils --</option>
-                  {availableBirds.map((bird) => (
-                    <option key={bird._id || bird.uid} value={bird.email} className="bg-[#05070A]">
-                      {bird.username} ({bird.email})
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-slate-200 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 text-sm appearance-none cursor-pointer transition-all"
+                    required
+                  >
+                    <option value="" disabled className="text-slate-500">-- Scanner le grand troupeau --</option>
+                    {availableBirds.length === 0 ? (
+                      <option disabled>Tous les oiseaux connus sont déjà dans le nid.</option>
+                    ) : (
+                      availableBirds.map((bird) => (
+                        <option key={bird._id || bird.uid} value={bird.email} className="bg-[#05070A] text-slate-200">
+                          {bird.username} ({bird.email})
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  {/* Petite icône personnalisée pour le select */}
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                    ▼
+                  </div>
+                </div>
               </div>
+
               <div>
                 <label className="block text-xs font-mono text-slate-400 mb-2 uppercase tracking-widest">Niveau d'Accès</label>
-                <select
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-slate-200 outline-none focus:border-red-500 text-sm appearance-none cursor-pointer"
-                >
-                  <option value="VISITEUR" className="bg-[#05070A]">Observateur (Lecture seule)</option>
-                  <option value="BATISSEUR" className="bg-[#05070A]">Bâtisseur (Modification)</option>
-                  <option value="ADMIN" className="bg-[#05070A]">Superviseur (Privilèges max)</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={inviteRole}
+                    onChange={(e) => setInviteRole(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-slate-200 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 text-sm appearance-none cursor-pointer transition-all"
+                  >
+                    <option value="VISITEUR" className="bg-[#05070A] text-slate-300">Observateur (Lecture seule)</option>
+                    <option value="BATISSEUR" className="bg-[#05070A] text-slate-300">Bâtisseur (Modification)</option>
+                    <option value="ADMIN" className="bg-[#05070A] text-red-400 font-bold">Superviseur (Privilèges max)</option>
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                    ▼
+                  </div>
+                </div>
               </div>
-              <button type="submit" disabled={isInviting || !inviteEmail} className="w-full mt-8 py-3 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-xl font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                {isInviting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Valider l'Injection"}
+
+              <button 
+                type="submit" 
+                disabled={isInviting || !inviteEmail} 
+                className="w-full mt-8 py-3 bg-gradient-to-r from-slate-100 to-slate-300 hover:from-white hover:to-slate-200 text-slate-900 rounded-xl font-black uppercase tracking-widest text-[11px] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg"
+              >
+                {isInviting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Suture en cours...
+                  </>
+                ) : (
+                  "Valider l'Injection"
+                )}
               </button>
             </form>
           </div>

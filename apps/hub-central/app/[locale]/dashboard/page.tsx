@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from "../../../navigation";
-import { LayoutGrid, Plus, Loader2, X, Activity, Users } from "lucide-react";
-// 🚨 On change l'import pour le formulaire des Nids
-// import { CreateTeamForm } from "../../../components/teams/CreateTeamForm"; 
+import { Plus, Loader2, X, Activity, Users } from "lucide-react";
+// 🛡️ SUTURE : Importation du formulaire de tressage purifié
+import { CreateTeamForm } from "../../../components/teams/CreateTeamForm"; 
 
 export default function TeamsListPage() {
   const [teams, setTeams] = useState<any[]>([]);
@@ -14,11 +14,14 @@ export default function TeamsListPage() {
   const fetchTeams = async () => {
     try {
       setIsLoading(true);
-      // 🎯 On cible désormais les Nids
       const response = await fetch('/api/teams'); 
       if (response.ok) {
-        const data = await response.json();
-        setTeams(Array.isArray(data) ? data : []);
+        const result = await response.json();
+        
+        // 🛡️ FIX : Désarmement du tueur silencieux. 
+        // On vérifie si les données sont dans 'data' ou 'teams', sinon on prend le tableau brut.
+        const extractedTeams = result.data || result.teams || (Array.isArray(result) ? result : []);
+        setTeams(extractedTeams);
       }
     } catch (error) {
       console.error("Impossible d'observer les Nids :", error);
@@ -31,6 +34,7 @@ export default function TeamsListPage() {
     fetchTeams();
   }, []);
 
+  // 🔄 APPELÉ APRÈS LE SUCCÈS D'UNE INCEPTION
   const handleTeamCreated = () => {
     setIsModalOpen(false);
     fetchTeams(); 
@@ -69,10 +73,13 @@ export default function TeamsListPage() {
             >
               <div className="flex justify-between items-start mb-4 relative z-10">
                 <div className="px-2.5 py-1 rounded-sm text-[9px] font-bold uppercase tracking-widest border bg-slate-800/50 text-slate-400 border-slate-700">
-                  {team.role || 'Membre'}
+                  {team.role || 'Fondateur'}
                 </div>
-                {/* On pourrait ici afficher la santé collective du Nid */}
-                <Activity size={14} className="text-red-500/50" />
+                {/* Visualisation de la charge mentale moyenne du nid */}
+                <div className="flex items-center gap-1.5">
+                   <span className="text-[10px] font-mono text-slate-500">{team.collectiveHealth?.averageMentalLoad || 0}%</span>
+                   <Activity size={14} className={team.collectiveHealth?.isOverloaded ? "text-red-500" : "text-emerald-500/50"} />
+                </div>
               </div>
               
               <h2 className="font-bold text-xl text-slate-200 group-hover:text-red-400 transition-colors duration-500 mb-2 line-clamp-1 relative z-10">
@@ -84,8 +91,8 @@ export default function TeamsListPage() {
               </p>
 
               <div className="mt-auto pt-4 border-t border-slate-800/50 flex items-center justify-between text-xs text-slate-600 relative z-10">
-                <span className="font-mono tracking-widest uppercase">CAPACITÉ: {team.membersCount || 1}</span>
-                <span className="text-red-500 font-medium group-hover:translate-x-2 transition-transform duration-500 flex items-center gap-1">
+                <span className="font-mono tracking-widest uppercase text-[9px]">Capacité: {team.membersCount || 1} Oiseaux</span>
+                <span className="text-red-500 font-medium group-hover:translate-x-2 transition-transform duration-500 flex items-center gap-1 uppercase text-[9px]">
                   Pénétrer <span className="text-[10px]">→</span>
                 </span>
               </div>
@@ -94,8 +101,8 @@ export default function TeamsListPage() {
         ) : (
           <div className="col-span-full text-center p-16 bio-card border-dashed border-slate-800 rounded-t-none">
             <div className="text-4xl mb-4 opacity-30 grayscale">🌳</div>
-            <p className="text-slate-500 mb-6 font-light">Aucun nid n'a encore été tressé dans cette zone.</p>
-            <button onClick={() => setIsModalOpen(true)} className="text-red-400 font-medium hover:text-red-300 transition-colors tracking-wide hover:underline decoration-red-500/30 underline-offset-4">
+            <p className="text-slate-500 mb-6 font-light italic">"Un oiseau ne chante bien que dans son propre nid."</p>
+            <button onClick={() => setIsModalOpen(true)} className="text-red-400 font-medium hover:text-red-300 transition-colors tracking-wide hover:underline decoration-red-500/30 underline-offset-4 uppercase text-xs font-mono">
               Tressez votre premier nid
             </button>
           </div>
@@ -106,15 +113,18 @@ export default function TeamsListPage() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-300">
           <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl no-scrollbar border border-slate-800/50 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
+            
+            {/* Bouton de fermeture */}
             <button 
               onClick={() => setIsModalOpen(false)} 
-              className="absolute top-6 right-6 z-10 text-slate-500 hover:text-red-400 transition-colors bg-slate-900/80 rounded-full p-2 backdrop-blur-md border border-slate-800 hover:border-red-900"
+              className="absolute top-6 right-6 z-50 text-slate-500 hover:text-red-400 transition-colors bg-slate-900/80 rounded-full p-2 backdrop-blur-md border border-slate-800 hover:border-red-900"
             >
               <X className="w-5 h-5" />
             </button>
+
             <div className="bg-[#05070A]">
-               {/* Ici, appeler le CreateTeamForm une fois prêt */}
-               <div className="p-12 text-center text-slate-400">Interface de tressage en cours de forge...</div>
+               {/* 🚀 L'interface de tressage est maintenant opérationnelle */}
+               <CreateTeamForm onSuccess={handleTeamCreated} />
             </div>
           </div>
         </div>

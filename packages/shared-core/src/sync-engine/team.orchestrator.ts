@@ -4,16 +4,14 @@ import { TransactionManager } from './transactionManager';
 
 export class TeamOrchestrator {
 
-  /**
-   * 👑 PROMOTION : Élève un oiseau au rang d'ADMIN dans un nid spécifique
-   */
   static async promoteToAdmin(teamUid: string, targetUserUid: string) {
     const session = getNeo4jSession();
     try {
+      // 🛡️ FIX : Remplacement de mongodbId par uid
       const cypher = `
-        MATCH (u:Oiseau {mongodbId: $userUid})-[r:MEMBER_OF]->(t:Team {mongodbId: $teamUid})
+        MATCH (u:Oiseau {uid: $userUid})-[r:MEMBER_OF]->(t:Team {uid: $teamUid})
         SET r.role = 'ADMIN'
-        RETURN u.username AS birdName, r.role AS newRole
+        RETURN coalesce(u.username, 'Inconnu') AS birdName, r.role AS newRole
       `;
       const result = await session.run(cypher, { userUid: targetUserUid, teamUid });
       if (result.records.length === 0) throw new Error("Promotion impossible : oiseau absent du nid.");
@@ -23,9 +21,6 @@ export class TeamOrchestrator {
     }
   }
 
-  /**
-   * 🏗️ FONDE UNE ESCOUADE (Hybride Mongo/Neo4j sous Sceau)
-   */
   static async fosterTeam(teamData: { 
     name: string, 
     creatorUid: string, 
@@ -56,24 +51,28 @@ export class TeamOrchestrator {
         parentId: parentObjectId 
       }], { session: mongoSession });
 
+      // 🛡️ CYPHER PUR : Adieu APOC. Et création propre de l'Oiseau avec uid + username
       const cypher = `
         MERGE (u:Oiseau { uid: $creatorUid })
+        ON CREATE SET u.username = $creatorName
+        
         MERGE (t:Team { uid: $teamUid })
         ON CREATE SET t.name = $name, t.createdAt = datetime()
-        MERGE (u)-[r:MEMBER_OF { role: 'ADMIN' }]->(t)
-        ON CREATE SET r.since = datetime()
+        
+        MERGE (u)-[r:MEMBER_OF]->(t)
+        ON CREATE SET r.role = 'ADMIN', r.since = datetime()
+        
         WITH t
-        CALL apoc.do.when(
-          $parentId IS NOT NULL,
-          'MATCH (p:Team { uid: parentId }) MERGE (t)-[:CHILD_OF]->(p) RETURN t',
-          'RETURN t',
-          {t: t, parentId: $parentId}
-        ) YIELD value
+        OPTIONAL MATCH (p:Team { uid: coalesce($parentId, 'NO_PARENT') })
+        FOREACH (parent IN CASE WHEN p IS NOT NULL THEN [p] ELSE [] END |
+          MERGE (t)-[:CHILD_OF]->(parent)
+        )
         RETURN count(t)
       `;
 
       await neo4jTx.run(cypher, {
         creatorUid: teamData.creatorUid,
+        creatorName: createur.username, // 👈 Ajout du username pour le graphe
         teamUid: newTeam.uid,
         name: newTeam.name,
         parentId: teamData.parentId || null
@@ -83,9 +82,6 @@ export class TeamOrchestrator {
     });
   }
 
-  /**
-   * 🔄 PUT : Mutation du nid (Synchronisée sous Sceau)
-   */
   static async mutateTeam(teamUid: string, data: Partial<ITeam>) {
     if (data.name) {
       const check = MoralChecker.analyze(data.name);
@@ -111,9 +107,6 @@ export class TeamOrchestrator {
     });
   }
 
-  /**
-   * 🗑️ DELETE : Destruction totale et propre du nid (Sous Sceau)
-   */
   static async dissolveTeam(teamUid: string) {
     return await TransactionManager.execute("Dissolution de Nid", async (mongoSession, neo4jTx) => {
       await neo4jTx.run(`MATCH (t:Team {uid: $teamUid}) DETACH DELETE t`, { teamUid });
@@ -122,16 +115,14 @@ export class TeamOrchestrator {
     });
   }
 
-  /**
-   * 🎖️ ASSIGNE UN RÔLE SPÉCIFIQUE (Neo4j)
-   */
   static async assignRole(teamUid: string, targetUserUid: string, role: string, permissions: string[] = []) {
     const session = getNeo4jSession();
     try {
+      // 🛡️ FIX : Remplacement de mongodbId par uid
       const cypher = `
-        MERGE (u:Oiseau { mongodbId: $userUid })
+        MERGE (u:Oiseau { uid: $userUid })
         WITH u
-        MATCH (t:Team { mongodbId: $teamUid })
+        MATCH (t:Team { uid: $teamUid })
         MERGE (u)-[r:MEMBER_OF]->(t)
         SET r.role = $role, 
             r.permissions = $permissions, 
@@ -146,18 +137,16 @@ export class TeamOrchestrator {
     }
   }
 
-  /**
-   * 🔍 GET : Récupère les détails du nid + membres hybrides
-   */
   static async getTeamDetails(teamUid: string) {
     const team = await TeamModel.findOne({ uid: teamUid }).lean();
     if (!team) throw new Error("Ce nid n'existe pas ou a été détruit.");
 
     const session = getNeo4jSession();
     try {
+      // 🛡️ FIX : Remplacement de mongodbId par uid
       const cypher = `
-        MATCH (u:Oiseau)-[r:MEMBER_OF]->(t:Team {mongodbId: $teamUid})
-        RETURN u.mongodbId as uid, u.username as username, r.role as role, r.permissions as permissions
+        MATCH (u:Oiseau)-[r:MEMBER_OF]->(t:Team {uid: $teamUid})
+        RETURN coalesce(u.uid, u.mongodbId) as uid, u.username as username, r.role as role, r.permissions as permissions
       `;
       const result = await session.run(cypher, { teamUid });
       
@@ -166,7 +155,7 @@ export class TeamOrchestrator {
         const mongoUser = await UserModel.findOne({ uid: birdUid }).select('email').lean();
         return {
           uid: birdUid,
-          username: record.get('username'),
+          username: record.get('username') || 'Oiseau Fantôme',
           email: mongoUser?.email || "email.inconnu@ilot.fr",
           role: record.get('role'),
           permissions: record.get('permissions') || [] 
@@ -179,43 +168,40 @@ export class TeamOrchestrator {
     }
   }
 
-  /**
-   * 💌 INVITE UN MEMBRE (Neo4j)
-   */
   static async inviteMember(teamUid: string, email: string, role: string, permissions: string[] = []) {
     const user = await UserModel.findOne({ email });
     if (!user) throw new Error("Cet oiseau n'existe pas sur l'Îlot.");
 
     const session = getNeo4jSession();
     try {
+      // 🛡️ FIX : Remplacement de mongodbId par uid et ajout du username
       const cypher = `
-        MERGE (u:Oiseau { mongodbId: $userUid })
+        MERGE (u:Oiseau { uid: $userUid })
+        ON CREATE SET u.username = $username
         WITH u
-        MATCH (t:Team { mongodbId: $teamUid })
+        MATCH (t:Team { uid: $teamUid })
         MERGE (u)-[r:MEMBER_OF]->(t)
         SET r.role = $role, 
             r.permissions = $permissions, 
             r.since = coalesce(r.since, datetime())
         RETURN r
       `;
-      const result = await session.run(cypher, { userUid: user.uid, teamUid, role, permissions });
-      if (result.records.length === 0) throw new Error("Impossible de lier l'oiseau.");
+      const result = await session.run(cypher, { userUid: user.uid, username: user.username, teamUid, role, permissions });
+      if (result.records.length === 0) throw new Error("Impossible de lier l'oiseau au graphe.");
       return { success: true, userUid: user.uid };
     } finally {
       await session.close();
     }
   }
 
-  /**
-   * 🚫 BANNIT UN MEMBRE (Neo4j)
-   */
   static async removeMember(teamUid: string, targetUserUid: string) {
     const session = getNeo4jSession();
     try {
+      // 🛡️ FIX : Remplacement de mongodbId par uid
       const cypher = `
-        MATCH (u:Oiseau {mongodbId: $targetUserUid})-[r:MEMBER_OF]->(t:Team {mongodbId: $teamUid})
+        MATCH (u:Oiseau {uid: $targetUserUid})-[r:MEMBER_OF]->(t:Team {uid: $teamUid})
         DELETE r
-        RETURN u.username AS birdName
+        RETURN coalesce(u.username, 'Inconnu') AS birdName
       `;
       const result = await session.run(cypher, { targetUserUid, teamUid });
       if (result.records.length === 0) throw new Error("Impossible de bannir : oiseau introuvable.");

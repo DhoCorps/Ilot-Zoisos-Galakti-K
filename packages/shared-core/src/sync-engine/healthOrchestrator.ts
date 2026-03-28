@@ -39,10 +39,10 @@ export const HealthOrchestrator = {
           { 
             $set: { 
               "wellbeing.isAtReducedSpeed": true,
-              status: 'REDUCED_SPEED' // 👈 Aligné sur l'anglais
+              status: 'REDUCED_SPEED'
             } 
           },
-          { session: mongoSession } // 👈 Sceau
+          { session: mongoSession }
         );
       }
 
@@ -58,7 +58,7 @@ export const HealthOrchestrator = {
             "settings.isGlobalReducedSpeed": isGlobalReducedSpeed
           } 
         },
-        { new: true, session: mongoSession } // 👈 Sceau
+        { new: true, session: mongoSession }
       );
 
       if (!updatedTeam) return;

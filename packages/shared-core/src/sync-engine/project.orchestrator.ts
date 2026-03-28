@@ -17,19 +17,19 @@ export const ProjectOrchestrator = {
     const slug = projectData.slug || generateSlug(projectData.title);
 
     return await TransactionManager.execute("Forge de Fragment", async (mongoSession, neo4jTx) => {
-      // 1. MONGO (Tableau requis pour la création en session)
+      // 1. MONGO
       const [mongoProject] = await ProjectModel.create([{
         ...projectData,
         uid,
         slug,
-        ownerId: ownerUid, // 👈 Aligné sur l'anglais
-        parentId: projectData.parentId || null, // 👈 Aligné sur l'anglais
+        ownerId: ownerUid,
+        parentId: projectData.parentId || null,
         teamId: projectData.teamId || null
       }], { session: mongoSession });
 
       // 2. NEO4J
       const cypher = `
-        MATCH (u:User {uid: $ownerUid})
+        MATCH (u:Oiseau {uid: $ownerUid}) // 👈 Alignement sur l'univers Galakti-K
         OPTIONAL MATCH (t:Team {uid: $teamId})
         OPTIONAL MATCH (parentP:Project {uid: $parentId})
         
@@ -56,7 +56,7 @@ export const ProjectOrchestrator = {
       await neo4jTx.run(cypher, {
         uid,
         title: projectData.title,
-        status: projectData.status || 'PLANNED', // 👈 Aligné sur l'anglais
+        status: projectData.status || 'PLANNED',
         ownerUid,
         teamId: projectData.teamId || null,
         parentId: projectData.parentId || null

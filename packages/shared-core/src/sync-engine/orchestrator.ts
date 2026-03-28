@@ -1,7 +1,4 @@
-// packages/shared-core/src/sync-engine/orchestrator.ts
-
 import { MoralChecker } from '../integrity/moral-checker';
-// On importe la fonction de baguage depuis l'infrastructure
 import { baguerOiseau } from '@ilot/infrastructure'; 
 
 export interface SyncResult {
@@ -23,8 +20,6 @@ export class SyncOrchestrator {
     console.log(`✨ [Orchestrator] Début du baguage pour l'oiseau : ${userData.username}`);
     
     try {
-      // 1. Appel de la fonction de l'infrastructure pour créer le NODE (:Oiseau)
-      // On utilise le "mongodbId" comme clé unique pour éviter les doublons
       const node = await baguerOiseau({
         mongodbId: userData.mongodbId,
         username: userData.username,
@@ -41,14 +36,10 @@ export class SyncOrchestrator {
       };
     } catch (error) {
       console.error(`🔥 [Sync Error] Échec du baguage Neo4j :`, error);
-      // On throw pour que l'API de register puisse gérer l'erreur de synchro
       throw error; 
     }
   }
 
-  /**
-   * Méthode de sécurité : Vérifie l'intégrité avant de synchroniser
-   */
   static async validateAndSync(content: string, action: () => Promise<any>) {
     const analysis = MoralChecker.analyze(content);
     
