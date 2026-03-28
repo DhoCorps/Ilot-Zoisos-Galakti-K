@@ -285,6 +285,7 @@ export default function TeamDetailsPage() {
                   initialRole={selectedUser.role} 
                   initialCaps={selectedUser.permissions || []} 
                   onSuccess={fetchTeamMembers} 
+                  canManage={selectedUser.role === 'ADMIN' || selectedUser.role === 'BATISSEUR'}
                 />
               </div>
             ) : (

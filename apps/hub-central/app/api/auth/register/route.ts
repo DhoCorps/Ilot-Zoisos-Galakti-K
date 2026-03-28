@@ -45,13 +45,12 @@ export async function POST(req: Request) {
     // On délègue la complexité à l'orchestrateur pour garder la route propre
     try {
       await SyncOrchestrator.syncUserCreation({ 
-        mongodbId: savedUser.uid,
+        uid: savedUser.uid, // 👈 LA CORRECTION EST LÀ ! (Adieu mongodbId)
         username: savedUser.username,
-        role: savedUser.role // On passe le rôle pour le graphe
+        role: savedUser.role 
       });
       console.log("🔥 [Neo4j] POINT MARQUÉ : Graphe synchronisé.");
     } catch (syncError) {
-      // On log mais on ne bloque pas : l'UX reste fluide
       console.error("⚠️ [Sync Engine] Retard de baguage :", syncError);
     }
 
