@@ -17,13 +17,15 @@ export const ProjectSchema = BaseNodeSchema.extend({
   status: ProjectStatusSchema.default('PLANNED'),
   priority: ProjectPrioritySchema.default('MEDIUM'),
   isArchived: z.boolean().default(false),
+  isPrivate: z.boolean().default(true),
+
   
   tags: z.array(z.string()).default([]),
   startDate: z.coerce.date().optional(), // z.coerce.date() transforme la string du formulaire en objet Date
   estimatedEndDate: z.coerce.date().optional(),
   closedAt: z.coerce.date().optional(),
   deadline: z.coerce.date().optional(),
-
+  
   // 📈 BIOMÉTRIE : Intégration de la santé du fragment
   wellbeing: z.object({
     globalStressLevel: z.number().min(0).max(100).default(0),

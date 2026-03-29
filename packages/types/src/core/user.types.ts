@@ -43,6 +43,7 @@ export const UserSchema = z.object({
   
   lastLogin: z.union([z.string(), z.date()]).optional(),
   isOnline: z.boolean().default(false),
+  isOpenToInvitations: z.boolean().default(true)
 });
 
 /**

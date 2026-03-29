@@ -11,12 +11,13 @@ export const TeamSchema = BaseNodeSchema.extend({
   ownerId: z.string(), 
   parentId: z.string().nullable().optional(), 
   leaderId: z.string().nullable().optional(),
-  
   // 🛡️ MODÉRATION : Aligné sur le modèle
   moderation: z.object({
     isFlagged: z.boolean().default(false)
   }).default({ isFlagged: false }),
   
+  isPrivate: z.boolean().default(true),
+
   settings: z.object({
     isGlobalReducedSpeed: z.boolean().default(false),
     allowSearch: z.boolean().default(true),

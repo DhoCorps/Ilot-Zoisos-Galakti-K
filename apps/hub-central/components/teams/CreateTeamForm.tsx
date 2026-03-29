@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react'; 
 import { teams } from '../../lib/apiClient'; 
-import { Loader2, ShieldPlus, TextQuote, Fingerprint, Lock, Globe } from 'lucide-react';
+// 🛡️ FIX: J'ai rajouté ShieldPlus ici !
+import { Fingerprint, Loader2, TextQuote, Lock, Globe, ShieldPlus } from 'lucide-react';
 
 interface CreateTeamFormProps {
   onSuccess?: () => void;
-  parentId?: string | null; // 🛡️ Harmonisé avec le reste de l'architecture
+  parentId?: string | null; 
 }
 
 export function CreateTeamForm({ onSuccess, parentId = null }: CreateTeamFormProps) {
@@ -20,7 +21,7 @@ export function CreateTeamForm({ onSuccess, parentId = null }: CreateTeamFormPro
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    isPrivate: false
+    isPrivate: true // 🛡️ Sceau de Feu : Furtif par défaut !
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,7 +29,6 @@ export function CreateTeamForm({ onSuccess, parentId = null }: CreateTeamFormPro
     setIsPending(true);
     setError(null);
 
-    // Extraction de la signature thermique
     const userId = (session?.user as any)?.uid || (session?.user as any)?._id || (session?.user as any)?.id;
 
     if (!userId) {
@@ -38,23 +38,20 @@ export function CreateTeamForm({ onSuccess, parentId = null }: CreateTeamFormPro
     }
 
     try {
-      // 🧬 Forge de l'objet Team aligné sur le Nexus
       const newTeam = await teams.create({
         name: formData.name,
         description: formData.description,
         parentId: parentId || undefined, 
-        creatorUid: userId, // 👈 Match l'attente de l'API
+        creatorUid: userId, 
+        isPrivate: formData.isPrivate, 
         settings: {
           allowSearch: !formData.isPrivate,
           isGlobalReducedSpeed: false
         }
       });
 
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        router.push(`/dashboard/teams/${newTeam.uid || newTeam._id}`);
-      }
+      if (onSuccess) onSuccess();
+      else router.push(`/dashboard/teams/${newTeam.uid || newTeam._id}`);
     } catch (err: any) {
       console.error("Échec de la genèse du nid :", err);
       setError(err.message || "Erreur lors de l'injection dans la matrice.");
@@ -67,7 +64,6 @@ export function CreateTeamForm({ onSuccess, parentId = null }: CreateTeamFormPro
     <div className="w-full max-w-xl mx-auto p-8 bg-[#05070A] border border-slate-900 rounded-3xl shadow-2xl">
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* HEADER DE LA FORGE */}
         <div className="flex items-center gap-4 mb-8 border-b border-slate-900 pb-6">
           <div className="p-3 bg-red-950/20 rounded-xl border border-red-900/30">
             <ShieldPlus className="w-6 h-6 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]" />
@@ -86,36 +82,21 @@ export function CreateTeamForm({ onSuccess, parentId = null }: CreateTeamFormPro
           </div>
         )}
 
-        {/* IDENTIFIANT DU NID */}
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-[10px] font-mono text-slate-500 uppercase tracking-[0.2em] ml-1">
             <Fingerprint className="w-3 h-3 text-red-500" /> Identifiant du Nid
           </label>
-          <input
-            required
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="EX: LA CANOPÉE CENTRALE"
-            className="w-full px-4 py-3 bg-slate-900/40 border border-slate-800 rounded-xl text-slate-200 outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20 transition-all placeholder:text-slate-800 font-bold uppercase"
-          />
+          <input required type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="EX: LA CANOPÉE CENTRALE" className="w-full px-4 py-3 bg-slate-900/40 border border-slate-800 rounded-xl text-slate-200 outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20 transition-all placeholder:text-slate-800 font-bold uppercase" />
         </div>
 
-        {/* MISSION & INSCRIPTION */}
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-[10px] font-mono text-slate-500 uppercase tracking-[0.2em] ml-1">
             <TextQuote className="w-3 h-3 text-red-500" /> Mission & Inscription
           </label>
-          <textarea
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="Définissez la fréquence de ce nid..."
-            rows={3}
-            className="w-full px-4 py-3 bg-slate-900/40 border border-slate-800 rounded-xl text-slate-300 outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20 transition-all placeholder:text-slate-800 resize-none text-sm leading-relaxed"
-          />
+          <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Définissez la fréquence de ce nid..." rows={3} className="w-full px-4 py-3 bg-slate-900/40 border border-slate-800 rounded-xl text-slate-300 outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20 transition-all placeholder:text-slate-800 resize-none text-sm leading-relaxed" />
         </div>
 
-        {/* VISIBILITÉ (STYLE GALAKTI-K) */}
+        {/* 🛡️ VISIBILITÉ GALAKTI-K ÉPURÉE */}
         <div className="flex items-center justify-between p-4 bg-slate-900/20 border border-slate-800/60 rounded-xl group hover:border-slate-700 transition-colors">
           <div className="flex items-center gap-3">
             {formData.isPrivate ? <Lock className="w-4 h-4 text-red-500" /> : <Globe className="w-4 h-4 text-slate-500" />}
@@ -137,20 +118,8 @@ export function CreateTeamForm({ onSuccess, parentId = null }: CreateTeamFormPro
           </button>
         </div>
 
-        {/* BOUTON D'INJECTION TRANSACTIONNELLE */}
-        <button
-          type="submit"
-          disabled={isPending || formData.name.length < 3}
-          className="w-full py-4 mt-4 bg-gradient-to-r from-red-900 to-rose-900 hover:from-red-800 hover:to-rose-800 disabled:from-slate-900 disabled:to-slate-900 disabled:text-slate-700 text-white rounded-xl font-black uppercase tracking-[0.3em] text-[10px] transition-all flex items-center justify-center gap-3 shadow-xl border border-red-500/20"
-        >
-          {isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin text-red-400" />
-              <span>Suture du Graphe...</span>
-            </>
-          ) : (
-            <span>Tresser le fragment →</span>
-          )}
+        <button type="submit" disabled={isPending || formData.name.length < 3} className="w-full py-4 mt-4 bg-gradient-to-r from-red-900 to-rose-900 hover:from-red-800 hover:to-rose-800 disabled:from-slate-900 disabled:to-slate-900 disabled:text-slate-700 text-white rounded-xl font-black uppercase tracking-[0.3em] text-[10px] transition-all flex items-center justify-center gap-3 shadow-xl border border-red-500/20">
+          {isPending ? <><Loader2 className="w-4 h-4 animate-spin text-red-400" /><span>Suture du Graphe...</span></> : <span>Tresser le fragment →</span>}
         </button>
       </form>
     </div>

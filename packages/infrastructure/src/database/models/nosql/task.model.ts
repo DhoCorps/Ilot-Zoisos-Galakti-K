@@ -19,6 +19,7 @@ export interface ITaskDocument extends Omit<ITask, 'projetUid' | 'status' | 'ass
   timeSpent?: number;
   commentsCount?: number;
   isArchived?: boolean;
+  isPrivate: boolean;
   
   moderation?: {
     isFlagged?: boolean;
@@ -98,6 +99,9 @@ const TaskSchema = new Schema<ITaskDocument>({
   enum: ['TRIVIAL', 'EASY', 'MEDIUM', 'HARD', 'EXTREME', 'CRITICAL'], 
       default: "MEDIUM",                
   },
+
+  isPrivate: { type: Boolean, default: true },
+
   wellbeing: {
     stressImpact: { type: Number, default: 0, min: 0, max: 100 },
     isBlocking: { type: Boolean, default: false }

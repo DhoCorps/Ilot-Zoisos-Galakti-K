@@ -15,7 +15,7 @@ export const TaskSchema = BaseNodeSchema.extend({
 
   // Lien vers le Fragment parent (MongoDB & Neo4j)
   projetUid: z.string().uuid("L'UID du projet doit être un UUID valide"),
-
+  isPrivate: z.boolean().default(true),
   // Les oiseaux assignés à cette brindille
   assignees: z.array(z.string().uuid()).default([]), 
   

@@ -13,6 +13,7 @@ export interface ITeam extends Document {
   parentId?: string | null; // 👈 Unifié en String pour le pivot Neo4j
   ownerId: string; // 👈 
   leaderId?: string; // 👈 
+  isPrivate: boolean;
   
   settings: {
     isGlobalReducedSpeed: boolean; 
@@ -27,6 +28,7 @@ export interface ITeam extends Document {
   moderation: {
     isFlagged: boolean;
   };
+
   
   createdAt: Date;
   updatedAt: Date;
@@ -45,7 +47,7 @@ const TeamSchema = new Schema<ITeam>(
     parentId: { type: String, default: null, index : true }, // 👈
     ownerId: { type: String, required: true, index: true }, // 👈
     leaderId: { type: String }, // 👈
-
+    isPrivate: { type: Boolean, default: true },
     moderation: {
       isFlagged: { type: Boolean, default: false }
     },

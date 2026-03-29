@@ -29,7 +29,8 @@ export interface IProjectDocument extends Document {
   parentId?: string | null; // 👈 En String
   progress: number;
   isArchived: boolean;
-  
+  isPrivate: boolean;
+
   moderation: {
     isFlagged: boolean;
   };
@@ -64,6 +65,8 @@ const ProjectSchema = new Schema<IProjectDocument>(
       enum: ['TRIVIAL', 'EASY', 'MEDIUM', 'HARD', 'EXTREME', 'CRITICAL'], 
       default: 'MEDIUM' 
     },
+
+    isPrivate: { type: Boolean, default: true },
     
     tags: [{ type: String }], // 👈
 

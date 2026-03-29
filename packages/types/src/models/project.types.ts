@@ -13,7 +13,6 @@ export const ProjectSchema = BaseNodeSchema.extend({
     .min(3)
     .regex(/^[a-z0-9-]+$/, "Le slug doit être au format url-friendly"),
   description: z.string().max(1000).default(''),
-  
   // ⚡ SUTURE : Nouveaux pivots
   ownerId: z.string().min(1, "L'UID du propriétaire est requis"), // 👈 Ex-owner
   teamId: z.string().nullable().optional(),
@@ -23,6 +22,7 @@ export const ProjectSchema = BaseNodeSchema.extend({
   priority: ProjectPrioritySchema.default('MEDIUM'), // 👈 Ex-priority
   
   isArchived: z.boolean().default(false),
+  isPrivate: z.boolean().default(true),
 
   // 📈 BIOMÉTRIE : Intégration de la santé du fragment
   wellbeing: z.object({

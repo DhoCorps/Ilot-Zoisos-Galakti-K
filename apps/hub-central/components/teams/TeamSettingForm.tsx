@@ -14,21 +14,40 @@ export const TeamSettingsForm = ({ team, onUpdate }: TeamSettingsFormProps) => {
   const [isPending, setIsPending] = useState(false);
   const [settings, setSettings] = useState({
     isGlobalReducedSpeed: team.settings?.isGlobalReducedSpeed || false,
-    allowSearch: team.settings?.allowSearch ?? true
+    isPrivate: team.isPrivate ?? true, 
   });
 
   const handleToggleReducedSpeed = async () => {
     setIsPending(true);
     try {
       const newStatus = !settings.isGlobalReducedSpeed;
-      // On met à jour via l'apiClient
       await teamsApi.update(team.uid!, { 
-        settings: { ...settings, isGlobalReducedSpeed: newStatus } 
+        settings: { ...team.settings, isGlobalReducedSpeed: newStatus } 
       });
       setSettings({ ...settings, isGlobalReducedSpeed: newStatus });
       if (onUpdate) onUpdate();
     } catch (error) {
       console.error("Échec de la mutation du Nid :", error);
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  // 🛡️ FIX : La fonction de sauvegarde globale
+  const handleSaveGlobal = async () => {
+    setIsPending(true);
+    try {
+      await teamsApi.update(team.uid!, { 
+        isPrivate: settings.isPrivate, 
+        settings: { 
+          ...team.settings, 
+          isGlobalReducedSpeed: settings.isGlobalReducedSpeed,
+          allowSearch: !settings.isPrivate 
+        } 
+      });
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      console.error("Échec de la sauvegarde globale :", error);
     } finally {
       setIsPending(false);
     }
@@ -69,35 +88,43 @@ export const TeamSettingsForm = ({ team, onUpdate }: TeamSettingsFormProps) => {
         </div>
       </div>
 
-      {/* SECTION : VISIBILITÉ */}
+      {/* 🛡️ SECTION : VISIBILITÉ (UPGRADE GALAKTI-K) */}
       <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-4">
         <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
           <ShieldAlert size={14} /> Confidentialité du Nid
         </h3>
         
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between p-4 bg-slate-950/50 border border-slate-800/60 rounded-xl group hover:border-slate-700 transition-colors">
           <div className="flex items-center gap-3">
-            {settings.allowSearch ? <Globe size={16} className="text-slate-500" /> : <Lock size={16} className="text-red-500" />}
-            <span className="text-xs text-slate-300">Référencement dans la recherche globale</span>
+            {settings.isPrivate ? <Lock className="w-4 h-4 text-red-500" /> : <Globe className="w-4 h-4 text-slate-500" />}
+            <div>
+              <p className="text-xs font-bold text-slate-300 uppercase tracking-wide">
+                {settings.isPrivate ? "Visibilité Furtive" : "Visibilité Publique"}
+              </p>
+              <p className="text-[9px] text-slate-600 font-mono uppercase">
+                {settings.isPrivate ? "Mode Ghost activé (Membres uniquement)" : "Ce nid est visible dans la canopée globale"}
+              </p>
+            </div>
           </div>
-          <input 
-            type="checkbox" 
-            checked={settings.allowSearch}
-            onChange={(e) => setSettings({ ...settings, allowSearch: e.target.checked })}
-            className="w-4 h-4 accent-red-600"
-          />
+          <button
+            type="button"
+            onClick={() => setSettings({ ...settings, isPrivate: !settings.isPrivate })}
+            className={`w-10 h-5 rounded-full transition-all relative ${settings.isPrivate ? 'bg-red-600' : 'bg-slate-800'}`}
+          >
+            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${settings.isPrivate ? 'left-6' : 'left-1'}`} />
+          </button>
         </div>
       </div>
 
-      {/* BOUTON DE SAUVEGARDE GÉNÉRALE */}
+      {/* BOUTON DE SAUVEGARDE GÉNÉRALE (Connecté à handleSaveGlobal) */}
       <button
+        onClick={handleSaveGlobal}
         disabled={isPending}
         className="w-full py-4 bg-slate-100 hover:bg-white text-black rounded-xl font-black uppercase tracking-[0.2em] text-[10px] transition-all flex items-center justify-center gap-3 shadow-xl"
       >
         {isPending ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
         Enregistrer les mutations
       </button>
-
     </div>
   );
 };

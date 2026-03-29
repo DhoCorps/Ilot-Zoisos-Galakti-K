@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Target, Link as LinkIcon, FileText, Activity, AlertTriangle, Zap, Network } from 'lucide-react';
+import { Loader2, Target, Link as LinkIcon, FileText, Activity, AlertTriangle, Zap, Network, Lock, Globe } from 'lucide-react';
 import { useSession } from 'next-auth/react'; 
 import { teams } from '../../lib/apiClient'; 
 
@@ -19,6 +19,7 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
   const [error, setError] = useState<string | null>(null);
 
   // --- ÉTATS POUR LA SUTURE DES NIDS ---
+  const [isPrivate, setIsPrivate] = useState(true);
   const [availableTeams, setAvailableTeams] = useState<any[]>([]);
   // ⚡ FIX : Renommé en selectedTeamId pour une cohérence totale avec la BDD
   const [selectedTeamId, setSelectedTeamId] = useState(teamId || "");
@@ -72,15 +73,16 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
       slug = rawtitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
     }
 
-    // 🛡️ FIX : Payload 100% raccord avec ton Schéma Zod
+   // 🛡️ PAYLOAD MIS À JOUR AVEC ISPRIVATE
     const projectData = {
       title: rawtitle,
       slug: slug,
       description: formData.get('description') as string,
       status: formData.get('status') as string,
       priority: formData.get('priority') as string,
-      teamId: teamId, // 👈 Le pivot exact attendu par Zod/Mongo
-      ownerId: ownerId,       // 👈 La clé exacte attendue
+      teamId: selectedTeamId, 
+      ownerId: ownerId,       
+      isPrivate: isPrivate, // 👈 Injection de la variable
     };
 
     try {
@@ -95,14 +97,10 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
         throw new Error(errorData.error || errorData.message || "La matrice a rejeté l'inception.");
       }
 
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        router.refresh(); 
-      }
+      if (onSuccess) onSuccess();
+      else router.refresh(); 
       
       (e.target as HTMLFormElement).reset();
-
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -263,6 +261,60 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
           ) : (
             <>Injecter le Fragment →</>
           )}
+        </button>
+        {/* 🛡️ VISIBILITÉ GALAKTI-K */}
+        <div className="flex items-center justify-between p-4 bg-slate-900/20 border border-slate-800/60 rounded-xl group hover:border-slate-700 transition-colors">
+          <div className="flex items-center gap-3">
+            {isPrivate ? <Lock className="w-4 h-4 text-red-500" /> : <Globe className="w-4 h-4 text-slate-500" />}
+            <div>
+              <p className="text-xs font-bold text-slate-300 uppercase tracking-wide">
+                {isPrivate ? "Visibilité Furtive" : "Visibilité Publique"}
+              </p>
+              <p className="text-[9px] text-slate-600 font-mono uppercase">
+                {isPrivate ? "Seule l'escouade peut voir ce fragment" : "Visible par tous les oiseaux de l'Îlot"}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsPrivate(!isPrivate)}
+            className={`w-10 h-5 rounded-full transition-all relative ${isPrivate ? 'bg-red-600' : 'bg-slate-800'}`}
+          >
+            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isPrivate ? 'left-6' : 'left-1'}`} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-900/20 rounded-xl border border-slate-800/50">
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest"><Activity size={14} className="text-slate-500" /> Statut</label>
+            <select name="status" defaultValue="PLANNED" className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-slate-300 outline-none focus:border-red-500 appearance-none cursor-pointer text-sm shadow-inner">
+              <option value="PLANNED">Planifié</option>
+              <option value="IN_PROGRESS">En Cours</option>
+              <option value="PAUSED">En Pause</option>
+              <option value="COMPLETED">Terminé</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest"><AlertTriangle size={14} className="text-slate-500" /> Criticité</label>
+            <select name="priority" defaultValue="MEDIUM" className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-slate-300 outline-none focus:border-red-500 appearance-none cursor-pointer text-sm shadow-inner">
+              <option value="TRIVIAL">Trivial</option>
+              <option value="EASY">Facile</option>
+              <option value="MEDIUM">Moyen</option>
+              <option value="HARD">Difficile</option>
+              <option value="EXTREME">Extrême</option>
+              <option value="CRITICAL">Critique</option>
+            </select>
+          </div>
+        </div>
+
+        {error && (
+          <div className="p-4 bg-red-950/20 border border-red-900/50 rounded-xl flex items-center gap-3 text-red-300 text-xs font-mono animate-in slide-in-from-top-2">
+            <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" /> {error.toUpperCase()}
+          </div>
+        )}
+
+        <button type="submit" disabled={loading || availableTeams.length === 0} className="w-full py-4 mt-4 bg-gradient-to-r from-red-900 to-rose-900 hover:from-red-800 hover:to-rose-800 text-slate-100 rounded-xl font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-red-950/40 border border-red-500/30 hover:border-red-400/50 tracking-[0.2em] uppercase text-[10px]">
+          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Synchronisation...</> : <>Injecter le Fragment →</>}
         </button>
       </form>
     </div>

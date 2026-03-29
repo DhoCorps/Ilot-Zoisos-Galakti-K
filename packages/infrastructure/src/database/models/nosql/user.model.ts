@@ -12,6 +12,7 @@ export interface UserDocument extends Omit<IUser, '_id'>, Document {
   resetPasswordExpires?: number;
   lastActive: Date;
   isOnline: boolean;
+  isOpenToInvitations: boolean;
   airplaneMode: boolean;
   teams: string[]; 
   projects: string[];
@@ -37,7 +38,7 @@ const UserSchema = new Schema<UserDocument>(
     isOnline: { type: Boolean, default: false },
     airplaneMode: { type: Boolean, default: false },
     lastActive: { type: Date, default: Date.now },
-
+    isOpenToInvitations: { type : Boolean, default: true},
     // --- 🔐 SÉCURITÉ & ROLES ---
     roles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Role' }],
     resetPasswordToken: { type: String },
@@ -67,6 +68,7 @@ const UserSchema = new Schema<UserDocument>(
       lastCheckIn: { type: Date }
     }
   },
+  
   { 
     timestamps: true,
     toJSON: { 
