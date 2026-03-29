@@ -1,4 +1,4 @@
-import { ProjectModel } from '@ilot/infrastructure';
+import { ProjectModel, TeamModel, UserModel } from '@ilot/infrastructure';
 import { v4 as uuidv4 } from 'uuid';
 import { ICreateProject } from '@ilot/types';
 import { TransactionManager } from './transactionManager';
@@ -27,12 +27,23 @@ export const ProjectOrchestrator = {
         teamId: projectData.teamId || null
       }], { session: mongoSession });
 
+      // 🌟 FIX MONGO : On peuple les tableaux des parents
+      if (projectData.teamId) {
+        await TeamModel.findOneAndUpdate(
+          { uid: projectData.teamId },
+          { $push: { projects: mongoProject._id } },
+          { session: mongoSession }
+        );
+      }
+      await UserModel.findOneAndUpdate(
+        { uid: ownerUid },
+        { $push: { projects: mongoProject._id } },
+        { session: mongoSession }
+      );
+
       // 2. NEO4J
       const cypher = `
-        MATCH (u:User {uid: $ownerUid})
-        OPTIONAL MATCH (t:Team {uid: $teamId})
-        OPTIONAL MATCH (parentP:Project {uid: $parentId})
-        
+        // 1. On crée le projet quoiqu'il arrive
         CREATE (p:Project {
           uid: $uid,
           title: $title,
@@ -40,19 +51,27 @@ export const ProjectOrchestrator = {
           createdAt: datetime()
         })
         
+        // 2. On tisse le lien vital avec le Créateur
+        WITH p
+        MATCH (u:User {uid: $ownerUid})
         MERGE (u)-[:OWNS_PROJECT]->(p)
         
-        WITH p, t, parentP
-        WHERE t IS NOT NULL
-        MERGE (t)-[:HOSTS_PROJECT]->(p)
+        // 3. Lien Optionnel : Équipe
+        WITH p
+        OPTIONAL MATCH (t:Team {uid: $teamId})
+        FOREACH (_ IN CASE WHEN t IS NOT NULL THEN [1] ELSE [] END |
+          MERGE (t)-[:HOSTS_PROJECT]->(p)
+        )
         
-        WITH p, parentP
-        WHERE parentP IS NOT NULL
-        MERGE (parentP)-[:PARENT_OF]->(p)
+        // 4. Lien Optionnel : Projet Parent
+        WITH p
+        OPTIONAL MATCH (parentP:Project {uid: $parentId})
+        FOREACH (_ IN CASE WHEN parentP IS NOT NULL THEN [1] ELSE [] END |
+          MERGE (parentP)-[:PARENT_OF]->(p)
+        )
         
         RETURN p
       `;
-
       await neo4jTx.run(cypher, {
         uid,
         title: projectData.title,
@@ -105,6 +124,20 @@ export const ProjectOrchestrator = {
       );
 
       if (!deletedMongo) throw new Error("Destruction impossible ou accès refusé.");
+
+      // 🌟 FIX MONGO : Chasse aux fantômes (on retire l'ID des tableaux)
+      if (deletedMongo.teamId) {
+        await TeamModel.findOneAndUpdate(
+          { uid: deletedMongo.teamId },
+          { $pull: { projects: deletedMongo._id } },
+          { session: mongoSession }
+        );
+      }
+      await UserModel.findOneAndUpdate(
+        { uid: userUid },
+        { $pull: { projects: deletedMongo._id } },
+        { session: mongoSession }
+      );
 
       await neo4jTx.run(`MATCH (p:Project {uid: $uid}) DETACH DELETE p`, { uid: projectUid });
 

@@ -22,21 +22,38 @@ export async function GET(req: Request, { params }: { params: { projectId: strin
   }
 }
 
-// 🔄 MISE À JOUR (PUT / PATCH)
-export async function PUT(req: Request, { params }: { params: { projectId: string } }) {
+// 🛠️ LA NOUVELLE PORTE D'ENTRÉE POUR LES MODIFICATIONS
+export async function PATCH(req: Request, { params }: { params: { projectId: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.uid) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-
-    const body = await req.json();
+    const { projectId } = params;
     
-    // Appel à l'orchestrateur pour la double mise à jour
-    const updatedProject = await ProjectOrchestrator.updateProject(params.projectId, body, session.user.uid);
+    // On récupère les nouvelles données envoyées par ton formulaire
+    const body = await req.json();
 
-    return NextResponse.json(updatedProject, { status: 200 });
+    // 1. Connexion à la base (si tu as une fonction connectToDatabase() dans ce fichier)
+    // await connectToDatabase();
+
+    // 2. Mise à jour dans MongoDB
+    // On utilise findOneAndUpdate pour trouver par l'UID et renvoyer le nouveau document
+    const updatedProject = await ProjectModel.findOneAndUpdate(
+      { uid: projectId }, // On cherche l'UID
+      { $set: body },     // On injecte les nouvelles données (status, priority, title...)
+      { new: true }       // On demande à Mongo de nous renvoyer la version mise à jour
+    );
+
+    if (!updatedProject) {
+      return NextResponse.json({ error: "Fragment introuvable dans la matrice." }, { status: 404 });
+    }
+
+    // 🌟 (Optionnel) Si le titre ou le statut de ton projet existe aussi dans Neo4j, 
+    // c'est ici qu'il faudrait appeler ton Orchestrator pour mettre à jour le Graphe !
+    // await SyncOrchestrator.updateProject(projectId, body);
+
+    return NextResponse.json(updatedProject);
+
   } catch (error: any) {
-    console.error("🚨 Erreur de mise à jour :", error);
-    return NextResponse.json({ error: error.message || "Échec de la mutation." }, { status: 500 });
+    console.error('🔥 Panne moteur lors de la mise à jour :', error);
+    return NextResponse.json({ error: 'Erreur technique lors de la soudure.' }, { status: 500 });
   }
 }
 

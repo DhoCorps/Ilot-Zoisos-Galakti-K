@@ -398,7 +398,10 @@ export default function TeamDetailsPage() {
 
       {/* MODALE DE CRÉATION DE PROJET (FRAGMENT) */}
       {isProjectModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+        <div 
+          className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
+          style={{ zIndex: 2147483647 }} // 🌟 FIX : On aligne le z-index sur l'autre modale
+        >
           <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl no-scrollbar border border-slate-800/50 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
             <button 
               onClick={() => setIsProjectModalOpen(false)} 

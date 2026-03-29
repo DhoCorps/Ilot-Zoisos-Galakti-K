@@ -26,7 +26,7 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left max-w-5xl mx-auto">
           
           {/* Carte 1 : Les Escouades */}
-          <Link href="/teams/create" className="bio-card flex flex-col h-full block group p-8">
+          <Link href="/dashboard/teams" className="bio-card flex flex-col h-full block group p-8">
             <div className="mb-6 inline-flex p-3 rounded-xl bg-slate-800/30 border border-slate-700/50 group-hover:border-red-500/30 group-hover:bg-red-500/10 transition-colors duration-500">
               <span className="text-2xl group-hover:scale-110 transition-transform duration-500 origin-center">🦅</span>
             </div>

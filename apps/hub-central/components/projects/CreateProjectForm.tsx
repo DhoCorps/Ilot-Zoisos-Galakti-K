@@ -2,9 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Target, Link as LinkIcon, FileText, Activity, AlertTriangle, Zap, Network, Lock, Globe } from 'lucide-react';
+import { Loader2, Target, Link as LinkIcon, FileText, Activity, AlertTriangle, Zap, Network, Lock, Globe, CheckCircle2 } from 'lucide-react';
 import { useSession } from 'next-auth/react'; 
 import { teams } from '../../lib/apiClient'; 
+
+// 🛡️ IMPORT DES MODULES DE TÂCHES POUR LA ROUTE 2
+import { CreateTaskForm } from '../tasks/CreateTaskForm';
+import { TaskBoard } from '../tasks/TaskBoard';
 
 interface CreateProjectFormProps {
   teamId?: string; // Si présent, on lie directement à ce nid
@@ -18,6 +22,9 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 🛡️ NOUVEL ÉTAT : L'UID du projet nouvellement créé (Active la Route 2)
+  const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
+
   // --- ÉTATS POUR LA SUTURE DES NIDS ---
   const [isPrivate, setIsPrivate] = useState(true);
   const [availableTeams, setAvailableTeams] = useState<any[]>([]);
@@ -27,7 +34,8 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
 
   // Chargement des nids si aucun teamId n'est imposé
   useEffect(() => {
-    if (!teamId) {
+    // Si un projet a déjà été créé, on ne charge plus les nids
+    if (!teamId && !createdProjectId) {
       const fetchTeams = async () => {
         try {
           const response = await teams.getAll();
@@ -42,7 +50,7 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
       };
       fetchTeams();
     }
-  }, [teamId]);
+  }, [teamId, createdProjectId]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -92,15 +100,20 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
         body: JSON.stringify(projectData),
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || errorData.message || "La matrice a rejeté l'inception.");
+        throw new Error(responseData.error || responseData.message || "La matrice a rejeté l'inception.");
       }
 
-      if (onSuccess) onSuccess();
-      else router.refresh(); 
+      // 🛡️ DÉCLENCHEMENT DE LA ROUTE 2 : On sauvegarde l'UID et on bascule l'interface
+      if (responseData.uid || responseData._id) {
+         setCreatedProjectId(responseData.uid || responseData._id);
+         if (onSuccess) onSuccess();
+      } else {
+         router.refresh(); 
+      }
       
-      (e.target as HTMLFormElement).reset();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -108,6 +121,37 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
     }
   };
 
+  // 🚀 INTERFACE ROUTE 2 : Le Fragment existe, on gère les Tâches
+  if (createdProjectId) {
+    return (
+      <div className="w-full relative overflow-hidden bg-[#05070A] p-8 md:p-10 rounded-2xl border border-red-500/50 shadow-[0_0_30px_rgba(229,72,77,0.1)] animate-in fade-in duration-500">
+        <div className="flex items-center gap-4 mb-8">
+          <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+          <div>
+            <h2 className="text-2xl font-bold text-slate-100 uppercase tracking-tight">Fragment Sécurisé</h2>
+            <p className="text-slate-500 font-mono text-[10px] uppercase tracking-[0.2em]">Phase 2 : Tissage des brindilles</p>
+          </div>
+        </div>
+
+        <div className="space-y-12">
+          {/* Formulaire d'ajout rapide verrouillé sur ce projet */}
+          <div>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Ajouter une tâche initiale</h3>
+            <CreateTaskForm projectId={createdProjectId} />
+          </div>
+
+          {/* Radar des tâches pour voir ce qu'on vient d'ajouter */}
+          <div>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Brindilles rattachées</h3>
+            <TaskBoard projectId={createdProjectId} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+
+  // 🛠️ INTERFACE ROUTE 1 : Création classique du Fragment
   return (
     <div className="w-full relative overflow-hidden bg-[#05070A] p-8 md:p-10 rounded-2xl border border-slate-900 shadow-2xl">
       <div className="absolute -top-40 -right-40 w-[400px] h-[400px] bg-red-950/10 blur-[100px] rounded-full pointer-events-none -z-10" />
@@ -203,6 +247,28 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
             placeholder="Détaillez les objectifs du fragment..."
           />
         </div>
+        
+        {/* 🛡️ VISIBILITÉ GALAKTI-K */}
+        <div className="flex items-center justify-between p-4 bg-slate-900/20 border border-slate-800/60 rounded-xl group hover:border-slate-700 transition-colors">
+          <div className="flex items-center gap-3">
+            {isPrivate ? <Lock className="w-4 h-4 text-red-500" /> : <Globe className="w-4 h-4 text-slate-500" />}
+            <div>
+              <p className="text-xs font-bold text-slate-300 uppercase tracking-wide">
+                {isPrivate ? "Visibilité Furtive" : "Visibilité Publique"}
+              </p>
+              <p className="text-[9px] text-slate-600 font-mono uppercase">
+                {isPrivate ? "Seule l'escouade peut voir ce fragment" : "Visible par tous les oiseaux de l'Îlot"}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsPrivate(!isPrivate)}
+            className={`w-10 h-5 rounded-full transition-all relative ${isPrivate ? 'bg-red-600' : 'bg-slate-800'}`}
+          >
+            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isPrivate ? 'left-6' : 'left-1'}`} />
+          </button>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-900/20 rounded-xl border border-slate-800/50">
           <div className="space-y-2">
@@ -261,60 +327,6 @@ export const CreateProjectForm = ({ teamId, onSuccess }: CreateProjectFormProps)
           ) : (
             <>Injecter le Fragment →</>
           )}
-        </button>
-        {/* 🛡️ VISIBILITÉ GALAKTI-K */}
-        <div className="flex items-center justify-between p-4 bg-slate-900/20 border border-slate-800/60 rounded-xl group hover:border-slate-700 transition-colors">
-          <div className="flex items-center gap-3">
-            {isPrivate ? <Lock className="w-4 h-4 text-red-500" /> : <Globe className="w-4 h-4 text-slate-500" />}
-            <div>
-              <p className="text-xs font-bold text-slate-300 uppercase tracking-wide">
-                {isPrivate ? "Visibilité Furtive" : "Visibilité Publique"}
-              </p>
-              <p className="text-[9px] text-slate-600 font-mono uppercase">
-                {isPrivate ? "Seule l'escouade peut voir ce fragment" : "Visible par tous les oiseaux de l'Îlot"}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsPrivate(!isPrivate)}
-            className={`w-10 h-5 rounded-full transition-all relative ${isPrivate ? 'bg-red-600' : 'bg-slate-800'}`}
-          >
-            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isPrivate ? 'left-6' : 'left-1'}`} />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-900/20 rounded-xl border border-slate-800/50">
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest"><Activity size={14} className="text-slate-500" /> Statut</label>
-            <select name="status" defaultValue="PLANNED" className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-slate-300 outline-none focus:border-red-500 appearance-none cursor-pointer text-sm shadow-inner">
-              <option value="PLANNED">Planifié</option>
-              <option value="IN_PROGRESS">En Cours</option>
-              <option value="PAUSED">En Pause</option>
-              <option value="COMPLETED">Terminé</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest"><AlertTriangle size={14} className="text-slate-500" /> Criticité</label>
-            <select name="priority" defaultValue="MEDIUM" className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-slate-300 outline-none focus:border-red-500 appearance-none cursor-pointer text-sm shadow-inner">
-              <option value="TRIVIAL">Trivial</option>
-              <option value="EASY">Facile</option>
-              <option value="MEDIUM">Moyen</option>
-              <option value="HARD">Difficile</option>
-              <option value="EXTREME">Extrême</option>
-              <option value="CRITICAL">Critique</option>
-            </select>
-          </div>
-        </div>
-
-        {error && (
-          <div className="p-4 bg-red-950/20 border border-red-900/50 rounded-xl flex items-center gap-3 text-red-300 text-xs font-mono animate-in slide-in-from-top-2">
-            <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" /> {error.toUpperCase()}
-          </div>
-        )}
-
-        <button type="submit" disabled={loading || availableTeams.length === 0} className="w-full py-4 mt-4 bg-gradient-to-r from-red-900 to-rose-900 hover:from-red-800 hover:to-rose-800 text-slate-100 rounded-xl font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-red-950/40 border border-red-500/30 hover:border-red-400/50 tracking-[0.2em] uppercase text-[10px]">
-          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Synchronisation...</> : <>Injecter le Fragment →</>}
         </button>
       </form>
     </div>

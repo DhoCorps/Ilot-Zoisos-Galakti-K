@@ -5,7 +5,6 @@
 // import { usePathname, useParams } from 'next/navigation'; 
 
 // 🟢 On importe les outils générés par next-intl
-// (Ajuste le chemin relatif si ton NavBar.tsx n'est pas dans components/layout/)
 import { Link, usePathname } from '../../navigation'; 
 import { 
   TreePine, 
@@ -15,19 +14,20 @@ import {
   Activity, 
   ShieldAlert, 
   Settings, 
-  LogOut 
+  LogOut,
+  Target // 👈 1. Ajout de l'icône pour les tâches
 } from 'lucide-react';
 
 export default function NavBar() {
-  // Le usePathname de next-intl est magique : il te renvoie "/dashboard" 
-  // même si l'utilisateur est physiquement sur "/fr/dashboard" ou "/en/dashboard" !
   const pathname = usePathname();
 
-  // 🪄 Injection dynamique et invisible : on écrit juste les routes de base
+  // 🪄 Injection dynamique et invisible
   const navItems = [
     { name: 'Gare Centrale', icon: Home, href: '/dashboard' },
     { name: 'La Volée', icon: Users, href: '/dashboard/flock' },
     { name: 'Mes Fragments', icon: LayoutGrid, href: '/dashboard/projects' },
+    // 👈 2. Le raccourci direct vers le Hub des Brindilles
+    { name: 'Tom-Hat-Toes', icon: Target, href: '/tom-hat-toes' }, 
     { name: 'Santé', icon: Activity, href: '/dashboard/wellbeing' },
     { name: 'Modération', icon: ShieldAlert, href: '/dashboard/moderation' },
   ];
@@ -48,7 +48,6 @@ export default function NavBar() {
       {/* Liens de navigation */}
       <div className="flex flex-col gap-4 w-full px-4 flex-1 mt-4">
         {navItems.map((item) => {
-          // La vérification fonctionne parfaitement car pathname ne contient plus la locale
           const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
           const Icon = item.icon;
           
@@ -78,7 +77,6 @@ export default function NavBar() {
 
       {/* Boutons du bas */}
       <div className="flex flex-col gap-4 w-full px-4 mt-auto">
-        {/* On retire aussi la locale en dur ici ! */}
         <Link href="/dashboard/settings" className="relative flex items-center p-3 rounded-2xl hover:bg-white/[0.05] border border-transparent transition-all duration-300">
           <Settings className="w-6 h-6 shrink-0 text-zinc-500/60" />
           <span className="absolute left-14 opacity-0 group-hover:opacity-100 group-hover:relative group-hover:left-0 ml-4 text-sm font-medium text-zinc-300/70 whitespace-nowrap transition-all duration-300">Réglages</span>

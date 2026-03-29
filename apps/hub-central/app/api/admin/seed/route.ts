@@ -44,28 +44,34 @@ export async function GET() {
       description: 'Permet d\'exclure définitivement un membre' 
     });
 
-    // 2. FORGE DES GRADES
+    const p7 = await RoleOrchestrator.createPermission({ 
+      intitule: 'Construire Un Nid', 
+      code: CAPABILITIES.TEAM.CREATE, 
+      description: 'Permet de construire un nid' 
+    });
+
+    // 2. FORGE DES GRADES (Mis à jour)
     await RoleOrchestrator.createRole({ 
       intitule: 'ADMIN', 
       description: 'Superviseur absolu', 
       isSystem: true, 
-      permissions: [p1._id, p2._id, p3._id, p4._id] 
+      permissions: [p1._id, p2._id, p3._id, p4._id, p5._id, p6._id, p7._id] // 👈 On ajoute tout
     });
 
     await RoleOrchestrator.createRole({ 
       intitule: 'BATISSEUR', 
       description: 'Ouvrier du Nid', 
       isSystem: true, 
-      permissions: [p2._id] 
+      permissions: [p2._id, p5._id, p7._id] // 👈 Le bâtisseur peut créer des nids et inviter
     });
 
     await RoleOrchestrator.createRole({ 
-      intitule: 'VISITEUR', 
-      description: 'Observateur pacifique', 
+      intitule: 'MEMBRE', 
+      description: 'Habitant de la Canopée', 
       isSystem: true, 
-      permissions: [] 
+      permissions: [p2._id] // Droits standards
     });
-
+    
     return NextResponse.json({ 
       success: true, 
       message: '✨ Le Livre des Sortilèges a été restauré avec l\'ADN exact de l\'Îlot !' 

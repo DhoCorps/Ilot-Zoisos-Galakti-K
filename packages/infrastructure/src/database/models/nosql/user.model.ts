@@ -40,7 +40,7 @@ const UserSchema = new Schema<UserDocument>(
     lastActive: { type: Date, default: Date.now },
     isOpenToInvitations: { type : Boolean, default: true},
     // --- 🔐 SÉCURITÉ & ROLES ---
-    roles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Role' }],
+    roles: { type: [String], default: ['MEMBER'] },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Number },
 

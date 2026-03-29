@@ -43,17 +43,15 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise
 
   return (responseData.data !== undefined ? responseData.data : responseData) as T;
 }
+
 /**
  * 🔑 MODULE : FORGE DES ACCÈS (Auth)
  */
 export const auth = {
-  // L'inscription passe par notre API custom
   register: (data: Partial<IUser>) => 
     apiFetch<IUser>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   
-  // 🛑 ATTENTION : Ne pas utiliser apiFetch pour Login / Logout !
-  // Utilise `signIn('credentials', {...})` et `signOut()` de 'next-auth/react' 
-  // dans tes composants Front-End.
+  // 🛑 ATTENTION : Utiliser `signIn` et `signOut` de 'next-auth/react' pour la session !
 };
 
 /**
@@ -63,7 +61,7 @@ export const user = {
   getMe: () => apiFetch<IUser>('/user/me'),
   
   updateProfile: (data: Partial<IUser>) => 
-    apiFetch<IUser>('/user/profile', { method: 'PUT', body: JSON.stringify(data) }),
+    apiFetch<IUser>('/user/profile', { method: 'PATCH', body: JSON.stringify(data) }), // 🛡️ Remplacé par PATCH
   
   getLineage: () => apiFetch<any>('/user/lineage'),
 };
@@ -77,7 +75,7 @@ export const projects = {
   create: (data: Partial<IProject>) => 
     apiFetch<IProject>('/projects', { method: 'POST', body: JSON.stringify(data) }),
   update: (uid: string, data: Partial<IProject>) => 
-    apiFetch<IProject>(`/projects/${uid}`, { method: 'PUT', body: JSON.stringify(data) }),
+    apiFetch<IProject>(`/projects/${uid}`, { method: 'PATCH', body: JSON.stringify(data) }), // 🛡️ Remplacé par PATCH
   delete: (uid: string) => apiFetch<void>(`/projects/${uid}`, { method: 'DELETE' }),
   getStatuses: () => apiFetch<IStatus[]>('/projects/statuses/all'),
 };
@@ -86,13 +84,17 @@ export const projects = {
  * 🍂 MODULE : LES BRINDILLES (Tasks)
  */
 export const tasks = {
-  getAll: (projectUid?: string) => 
-    apiFetch<ITask[]>(`/tasks${projectUid ? `?projectUid=${projectUid}` : ''}`),
+  // 🛡️ SUTURE : projectUid -> projectId
+  getAll: (projectId?: string) => 
+    apiFetch<ITask[]>(`/tasks${projectId ? `?projectId=${projectId}` : ''}`),
   getById: (uid: string) => apiFetch<ITask>(`/tasks/${uid}`),
   create: (data: Partial<ITask>) => 
     apiFetch<ITask>('/tasks', { method: 'POST', body: JSON.stringify(data) }),
+  
+  // 🛡️ SUTURE : Le bon verbe HTTP (PATCH)
   update: (uid: string, data: Partial<ITask>) => 
-    apiFetch<ITask>(`/tasks/${uid}`, { method: 'PUT', body: JSON.stringify(data) }),
+    apiFetch<ITask>(`/tasks/${uid}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  
   burn: (uid: string) => apiFetch<void>(`/tasks/${uid}`, { method: 'DELETE' }),
 };
 
@@ -117,9 +119,10 @@ export const teams = {
   create: (data: any) =>
     apiFetch<any>('/teams', { method: 'POST', body: JSON.stringify(data) }),
   getById: (teamUid: string) => apiFetch<ITeam>(`/teams/${teamUid}`),
+  
   update: (teamUid: string, data: Partial<ITeam>) => 
     apiFetch<ITeam>(`/teams/${teamUid}`, { 
-      method: 'PUT', 
+      method: 'PATCH', // 🛡️ Remplacé par PATCH pour coller aux standards Next.js
       body: JSON.stringify(data) 
     }),
   delete: (teamUid: string) => apiFetch<void>(`/teams/${teamUid}`, { method: 'DELETE' }),
@@ -131,7 +134,6 @@ export const teams = {
     apiFetch<void>(`/teams/${teamUid}/members/${userUid}`, { method: 'DELETE' }),
   invite: (data: { teamId: string; email: string; role: string; permissions?: string[] }) => 
     apiFetch<any>('/teams/invite', { method: 'POST', body: JSON.stringify(data) }),
-
 };
 
 /**
