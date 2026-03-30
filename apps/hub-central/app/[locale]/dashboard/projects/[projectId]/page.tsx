@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom'; // 🌟 LA SOUDURE MAJEURE EST ICI
 import { useParams, useRouter } from 'next/navigation';
 import { Loader2, ArrowLeft, Activity, AlignLeft, ShieldAlert, Trash2, Edit3, Save, X, Target, Plus, CheckCircle } from 'lucide-react';
 import { Link } from "../../../../../navigation"; 
@@ -55,8 +56,10 @@ export default function ProjectDetailsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  // 🛠️ NOUVEAU : État pour gérer l'ouverture du sas des Brindilles
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  
+  // 🌟 NOUVEAU : On vérifie que le composant est bien monté sur le client pour autoriser le Portal
+  const [mounted, setMounted] = useState(false);
   
   const [editData, setEditData] = useState<EditProjectData>({
     title: '',
@@ -66,6 +69,7 @@ export default function ProjectDetailsPage() {
   });
 
   useEffect(() => {
+    setMounted(true);
     const fetchProjectDetails = async () => {
       if (!projectId) return;
       try {
@@ -169,7 +173,7 @@ export default function ProjectDetailsPage() {
                     <select 
                       value={editData.status} 
                       onChange={(e) => setEditData({...editData, status: e.target.value as ProjectStatus})}
-                      className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-md px-2 py-1 outline-none focus:border-red-500"
+                      className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-md px-2 py-1 outline-none focus:border-red-500 relative z-20"
                     >
                       <option value="PLANNED">Planifié</option>
                       <option value="IN_PROGRESS">En Cours</option>
@@ -181,7 +185,7 @@ export default function ProjectDetailsPage() {
                     <select 
                       value={editData.priority} 
                       onChange={(e) => setEditData({...editData, priority: e.target.value as ProjectPriority})}
-                      className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-md px-2 py-1 outline-none focus:border-red-500"
+                      className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-md px-2 py-1 outline-none focus:border-red-500 relative z-20"
                     >
                       <option value="TRIVIAL">Triviale</option>
                       <option value="EASY">Facile</option>
@@ -210,7 +214,7 @@ export default function ProjectDetailsPage() {
                   type="text" 
                   value={editData.title}
                   onChange={(e) => setEditData({...editData, title: e.target.value})}
-                  className="w-full bg-slate-900/50 border border-slate-700 text-3xl md:text-4xl font-bold text-slate-100 tracking-tight rounded-lg px-3 py-1 outline-none focus:border-red-500 transition-colors"
+                  className="w-full bg-slate-900/50 border border-slate-700 text-3xl md:text-4xl font-bold text-slate-100 tracking-tight rounded-lg px-3 py-1 outline-none focus:border-red-500 transition-colors relative z-20"
                 />
               ) : (
                 <h1 className="text-3xl md:text-4xl font-bold text-slate-100 tracking-tight">
@@ -250,9 +254,7 @@ export default function ProjectDetailsPage() {
         {/* GRILLE PRINCIPALE */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* COLONNE GAUCHE (Description + Tâches) */}
           <div className="col-span-1 lg:col-span-2 space-y-8">
-            
             {/* 1. DESCRIPTION DU PROJET */}
             <div className="bio-card p-8">
               <div className="flex items-center gap-2 mb-6 border-b border-slate-800/50 pb-4">
@@ -265,7 +267,7 @@ export default function ProjectDetailsPage() {
                   value={editData.description}
                   onChange={(e) => setEditData({...editData, description: e.target.value})}
                   rows={6}
-                  className="w-full bg-slate-900/50 border border-slate-700 text-slate-300 rounded-lg p-4 outline-none focus:border-red-500 transition-colors resize-y leading-relaxed"
+                  className="w-full bg-slate-900/50 border border-slate-700 text-slate-300 rounded-lg p-4 outline-none focus:border-red-500 transition-colors resize-y leading-relaxed relative z-20"
                   placeholder="Description du fragment..."
                 />
               ) : (
@@ -275,39 +277,36 @@ export default function ProjectDetailsPage() {
               )}
             </div>
 
-            {/* 🛠️ 2. LE BLOC DES BRINDILLES (Blindage Anti-Mute activé) */}
-          <div className="bio-card p-8 border-slate-800/60 relative z-10">
-            <div className="flex items-center justify-between mb-6 border-b border-slate-800/50 pb-4 relative z-20">
-              <div className="flex items-center gap-3">
-                <Target className="w-5 h-5 text-emerald-500" />
-                <h2 className="text-sm font-mono font-bold tracking-widest text-slate-300 uppercase">Brindilles du Fragment</h2>
+            {/* 🛠️ 2. LE BLOC DES BRINDILLES */}
+            <div className="bio-card p-8 border-slate-800/60 relative z-10">
+              <div className="flex items-center justify-between mb-6 border-b border-slate-800/50 pb-4 relative z-20">
+                <div className="flex items-center gap-3">
+                  <Target className="w-5 h-5 text-emerald-500" />
+                  <h2 className="text-sm font-mono font-bold tracking-widest text-slate-300 uppercase">Brindilles du Fragment</h2>
+                </div>
+                
+                <button 
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsTaskModalOpen(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-950/20 hover:bg-emerald-900/40 text-emerald-400 text-[10px] font-mono uppercase tracking-widest rounded-lg border border-emerald-900/30 hover:border-emerald-500/50 transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)] cursor-pointer relative z-50 pointer-events-auto"
+                >
+                  <Plus className="w-4 h-4" /> Forger
+                </button>
               </div>
               
-              {/* 🛡️ LE BOUTON INDESTRUCTIBLE */}
-              <button 
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsTaskModalOpen(true);
-                }} 
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-950/20 hover:bg-emerald-900/40 text-emerald-400 text-[10px] font-mono uppercase tracking-widest rounded-lg border border-emerald-900/30 hover:border-emerald-500/50 transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)] cursor-pointer relative z-50 pointer-events-auto"
-              >
-                <Plus className="w-4 h-4" /> Forger
-              </button>
-            </div>
-            
-            <div className="text-center py-10 bg-slate-900/20 rounded-xl border border-dashed border-slate-800">
-              <CheckCircle className="w-8 h-8 text-slate-700 mx-auto mb-3 opacity-50" />
-              <p className="text-slate-500 font-light text-sm italic">
-                Aucune brindille n'est actuellement tissée sur ce fragment.
-              </p>
+              <div className="text-center py-10 bg-slate-900/20 rounded-xl border border-dashed border-slate-800">
+                <CheckCircle className="w-8 h-8 text-slate-700 mx-auto mb-3 opacity-50" />
+                <p className="text-slate-500 font-light text-sm italic">
+                  Aucune brindille n'est actuellement tissée sur ce fragment.
+                </p>
+              </div>
             </div>
           </div>
 
-          </div>
-
-          {/* COLONNE DROITE (Télémétrie) */}
           <div className="col-span-1 space-y-8">
             <div className="bio-card p-6 border-slate-800/60">
               <div className="flex items-center gap-2 mb-6">
@@ -333,17 +332,12 @@ export default function ProjectDetailsPage() {
               </div>
             </div>
           </div>
-          
         </div>
       </div>
 
-      {/* 🛠️ LE SAS : MODALE DE CRÉATION DE BRINDILLE (Blindage Indestructible) */}
-      {isTaskModalOpen && (
-        <div 
-          className="fixed top-0 left-0 w-screen h-screen flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300"
-          style={{ zIndex: 2147483647 }} 
-        >
-          {/* Conteneur principal de la modale avec un max-h pour éviter qu'elle déborde */}
+      {/* 🚀 LE SAS : PORTALISÉ POUR ÉCHAPPER AUX CONFLITS DE LAYOUT */}
+      {mounted && isTaskModalOpen && createPortal(
+        <div className="fixed inset-0 z-[2147483647] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="relative w-full max-w-2xl bg-[#05070A] rounded-2xl border border-emerald-900/30 shadow-[0_0_50px_rgba(0,0,0,0.8)] p-8 max-h-[90vh] overflow-y-auto no-scrollbar">
             
             <button 
@@ -363,14 +357,14 @@ export default function ProjectDetailsPage() {
               </p>
             </div>
 
-            {/* 🚧 Ici, tu pourras importer et glisser ton composant <CreateTaskForm projectId={projectId} /> */}
             <div className="border-2 border-dashed border-emerald-900/30 rounded-xl p-10 text-center bg-emerald-950/10">
               <p className="text-emerald-500/50 font-mono text-xs uppercase tracking-widest animate-pulse">
                 [ Espace réservé au formulaire Tom-Hat-Toes ]
               </p>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

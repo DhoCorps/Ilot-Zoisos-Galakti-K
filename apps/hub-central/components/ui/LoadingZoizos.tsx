@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 export default function LoadingZoizos({ message = "L'oiseau prépare son nid..." }) {
   return (

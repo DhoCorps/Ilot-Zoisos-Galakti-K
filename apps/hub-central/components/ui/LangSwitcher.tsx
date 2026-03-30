@@ -1,13 +1,10 @@
-"use client";
+'use client';
 
 import { useLocale } from 'next-intl';
-// 🛑 On supprime l'ancien routeur
-// import { useRouter, usePathname } from 'next/navigation';
-
 // 🟢 On importe notre boussole magique
 import { useRouter, usePathname } from '../../navigation'; 
 import { Languages, Loader2 } from 'lucide-react'; 
-import { useState } from 'react';
+import { useTransition } from 'react'; // 🌟 La soudure majeure : useTransition remplace useState+setTimeout
 
 export const LangSwitcher = () => {
   const locale = useLocale();
@@ -15,34 +12,33 @@ export const LangSwitcher = () => {
   // 🪄 Ici, pathname vaut "/dashboard" (la locale est masquée !)
   const pathname = usePathname(); 
   
-  const [isSyncing, setIsSyncing] = useState(false);
+  // 🚀 isPending devient vrai pendant que Next.js calcule et charge la nouvelle langue
+  const [isPending, startTransition] = useTransition();
 
   const toggleLanguage = () => {
-    setIsSyncing(true); 
-    
     const nextLocale = locale === 'fr' ? 'en' : 'fr';
     
-    // On laisse ton animation vivre un court instant
-    setTimeout(() => {
-      // 🚀 LE COUP DE GRÂCE : On remplace la page actuelle en injectant la nouvelle langue
+    // 🚀 L'HYPER-SAUT : startTransition enveloppe la navigation.
+    // next-intl va automatiquement et proprement écraser le cookie "NEXT_LOCALE" !
+    startTransition(() => {
       router.replace(pathname, { locale: nextLocale });
-    }, 400); 
+    }); 
   };
 
   return (
     <button
       onClick={toggleLanguage}
-      disabled={isSyncing}
+      disabled={isPending}
       className={`
         flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-500 group backdrop-blur-md
-        ${isSyncing 
+        ${isPending 
           ? 'border-emerald-500/50 bg-emerald-900/30 scale-95 shadow-inner' 
           : 'border-slate-700/50 bg-slate-800/40 hover:bg-slate-800/80 hover:border-emerald-500/30'}
       `}
       title={locale === 'fr' ? 'Switch to English' : 'Passer en Français'} >
         
       {/* Icône qui tourne si on synchronise, sinon icône fixe */}
-      {isSyncing ? (
+      {isPending ? (
         <Loader2 size={14} className="animate-spin text-emerald-500" />
       ) : (
         <Languages 
@@ -51,12 +47,12 @@ export const LangSwitcher = () => {
         />
       )}
 
-      <span className={`text-[10px] font-bold uppercase tracking-widest transition-opacity ${isSyncing ? 'opacity-50' : 'opacity-100'}`}>
+      <span className={`text-[10px] font-bold uppercase tracking-widest transition-opacity ${isPending ? 'opacity-50' : 'opacity-100'}`}>
         {locale}
       </span>
       
       {/* Indicateur visuel (drapeau) qui s'estompe pendant la transition */}
-      <div className={`flex flex-col gap-0.5 ml-1 transition-all duration-500 ${isSyncing ? 'blur-sm opacity-0' : 'opacity-100'}`}>
+      <div className={`flex flex-col gap-0.5 ml-1 transition-all duration-500 ${isPending ? 'blur-sm opacity-0' : 'opacity-100'}`}>
         {locale === 'fr' ? (
            <div className="flex gap-0.5">
              <div className="w-1 h-2 bg-blue-500 rounded-sm" />

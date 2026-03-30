@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // 🛑 On n'utilise plus les outils natifs de Next.js
 // import Link from 'next/link';
@@ -15,22 +15,25 @@ import {
   ShieldAlert, 
   Settings, 
   LogOut,
-  Target // 👈 1. Ajout de l'icône pour les tâches
+  Target,
+  Network
 } from 'lucide-react';
+
+import { signOut } from "next-auth/react";
 
 export default function NavBar() {
   const pathname = usePathname();
 
   // 🪄 Injection dynamique et invisible
-  const navItems = [
-    { name: 'Gare Centrale', icon: Home, href: '/dashboard' },
-    { name: 'La Volée', icon: Users, href: '/dashboard/flock' },
-    { name: 'Mes Fragments', icon: LayoutGrid, href: '/dashboard/projects' },
-    // 👈 2. Le raccourci direct vers le Hub des Brindilles
-    { name: 'Tom-Hat-Toes', icon: Target, href: '/tom-hat-toes' }, 
-    { name: 'Santé', icon: Activity, href: '/dashboard/wellbeing' },
-    { name: 'Modération', icon: ShieldAlert, href: '/dashboard/moderation' },
-  ];
+const navItems = [
+  { name: 'Gare Centrale', icon: Home, href: '/dashboard' },
+  { name: 'Observatoire (Nids)', icon: Network, href: '/dashboard/teams' }, 
+  { name: 'La Volée', icon: Users, href: '/dashboard/flock' },
+  { name: 'Mes Fragments', icon: LayoutGrid, href: '/dashboard/projects' },
+  { name: 'Tom-Hat-Toes', icon: Target, href: '/dashboard/tasks' }, 
+  { name: 'Santé', icon: Activity, href: '/dashboard/wellbeing' },
+  { name: 'Modération', icon: ShieldAlert, href: '/dashboard/moderation' },
+];
 
   return (
     <nav className="fixed left-0 top-0 h-screen w-24 hover:w-64 group bg-emerald-950/40 border-r border-white/[0.05] backdrop-blur-2xl transition-all duration-500 z-50 flex flex-col items-center py-8 shadow-[10px_0_30px_rgba(0,0,0,0.5)] overflow-hidden">
@@ -82,7 +85,11 @@ export default function NavBar() {
           <span className="absolute left-14 opacity-0 group-hover:opacity-100 group-hover:relative group-hover:left-0 ml-4 text-sm font-medium text-zinc-300/70 whitespace-nowrap transition-all duration-300">Réglages</span>
         </Link>
         
-        <button className="relative flex items-center p-3 rounded-2xl hover:bg-red-500/10 border border-transparent transition-all duration-300 w-full text-left">
+        {/* 🌟 LA SOUDURE : Ajout de l'onClick d'éjection */}
+        <button 
+          onClick={() => signOut({ callbackUrl: '/' })} 
+          className="relative flex items-center p-3 rounded-2xl hover:bg-red-500/10 border border-transparent transition-all duration-300 w-full text-left"
+        >
           <LogOut className="w-6 h-6 shrink-0 text-red-500/60" />
           <span className="absolute left-14 opacity-0 group-hover:opacity-100 group-hover:relative group-hover:left-0 ml-4 text-sm font-medium text-red-400/80 whitespace-nowrap transition-all duration-300">S'envoler (Quitter)</span>
         </button>

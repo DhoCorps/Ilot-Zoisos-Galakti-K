@@ -1,129 +1,319 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Link } from "../../../../navigation"; // Le Link de next-intl gère la langue tout seul !
-import { LayoutGrid, Plus, Loader2, X, Activity } from "lucide-react";
-import { CreateProjectForm } from "../../../../components/projects/CreateProjectForm"; 
+import { createPortal } from 'react-dom';
+import { useParams, useRouter } from 'next/navigation';
+import { Loader2, ArrowLeft, Activity, AlignLeft, ShieldAlert, Trash2, Edit3, Save, X, Target, Plus, CheckCircle } from 'lucide-react';
+import { Link } from "../../../../navigation"; 
+import { projects } from "../../../../lib/apiClient"; 
+// 🌟 NOUVEAU : On importe ton formulaire
+import { CreateTaskForm } from "../../../../components/tasks/CreateTaskForm";
 
-export default function ProjectsListPage() {
-  const [projects, setProjects] = useState<any[]>([]);
+type ProjectStatus = "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "PAUSED" | "REDUCED_SPEED";
+type ProjectPriority = "TRIVIAL" | "EASY" | "MEDIUM" | "HARD" | "EXTREME" | "CRITICAL";
+
+interface EditProjectData {
+  title: string;
+  description: string;
+  status: ProjectStatus;
+  priority: ProjectPriority;
+}
+
+const STATUS_LABELS: Record<ProjectStatus, string> = {
+  PLANNED: 'Planifié',
+  IN_PROGRESS: 'En Cours',
+  COMPLETED: 'Terminé',
+  PAUSED: 'En Pause',
+  REDUCED_SPEED: 'Vitesse Réduite'
+};
+
+const PRIORITY_LABELS: Record<ProjectPriority, string> = {
+  TRIVIAL: 'Triviale',
+  EASY: 'Facile',
+  MEDIUM: 'Normale',
+  HARD: 'Haute',
+  EXTREME: 'Extrême',
+  CRITICAL: 'Critique'
+};
+
+const STATUS_COLORS: Record<ProjectStatus, string> = {
+  IN_PROGRESS: 'bg-red-500/10 text-red-400 border-red-500/30',
+  REDUCED_SPEED: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+  PAUSED: 'bg-slate-700/50 text-slate-300 border-slate-600',
+  COMPLETED: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+  PLANNED: 'bg-slate-800/50 text-slate-400 border-slate-700'
+};
+
+export default function ProjectDetailsPage() {
+  const params = useParams();
+  const router = useRouter();
+  
+  const projectId = params?.projectId as string;
+  const locale = (params?.locale as string) || 'fr'; 
+  
+  const [project, setProject] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchProjects = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch('/api/projects');
-      if (response.ok) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  
+  const [editData, setEditData] = useState<EditProjectData>({
+    title: '', description: '', status: 'IN_PROGRESS', priority: 'MEDIUM'
+  });
+
+  useEffect(() => {
+    setMounted(true);
+    const fetchProjectDetails = async () => {
+      if (!projectId) return;
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/projects/${projectId}`);
+        if (!response.ok) throw new Error("Impossible de lire ce nœud dans la matrice.");
         const data = await response.json();
-        setProjects(Array.isArray(data) ? data : []);
+        setProject(data);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Impossible d'observer les fragments :", error);
+    };
+    fetchProjectDetails();
+  }, [projectId]); 
+
+  const handleEdit = () => {
+    setEditData({
+      title: project.title || '',
+      description: project.description || '',
+      status: (project.status as ProjectStatus) || 'IN_PROGRESS',
+      priority: (project.priority as ProjectPriority) || 'MEDIUM'
+    });
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => setIsEditing(false);
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      await projects.update(projectId, editData);
+      setProject({ ...project, ...editData });
+      setIsEditing(false);
+    } catch (err: any) {
+      alert("Échec de la sauvegarde : " + (err.message || "Erreur réseau."));
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  const handleProjectCreated = () => {
-    setIsModalOpen(false);
-    fetchProjects(); // On rafraîchit la liste instantanément après l'inception
+  const handleDelete = async () => {
+    if (!confirm("⚠️ DESTRUCTION IMMINENTE ! Voulez-vous vraiment purger ce fragment ?")) return;
+    try {
+      setIsLoading(true); 
+      await projects.delete(projectId);
+      router.push(`/${locale}/dashboard/projects`);
+      router.refresh(); 
+    } catch (err: any) {
+      alert(err.message || "Impossible de détruire ce fragment.");
+      setIsLoading(false); 
+    }
   };
 
-  return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
-      
-      {/* EN-TÊTE */}
-      <div className="flex justify-between items-center bio-card p-6 border-b-0 rounded-b-none bg-slate-900/40">
-        <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-3 tracking-tight">
-          <LayoutGrid className="text-red-500" strokeWidth={1.5} />
-          Mes Fragments
-        </h1>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-red-900 to-rose-900 hover:from-red-800 hover:to-rose-800 text-slate-100 rounded-xl font-bold transition-all shadow-lg shadow-red-950/40 border border-red-500/30 hover:border-red-400/50"
-        >
-          <Plus className="w-5 h-5" />
-          Nouveau Chantier
-        </button>
+  if (isLoading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-red-500 drop-shadow-[0_0_15px_rgba(229,72,77,0.5)] mb-4" />
+        <p className="text-xs font-mono text-red-500/80 uppercase tracking-widest animate-pulse">Décryptage du Fragment...</p>
       </div>
+    );
+  }
 
-      {/* LISTE DES PROJETS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-0">
-        {isLoading ? (
-          <div className="col-span-full flex justify-center p-12 bio-card rounded-t-none">
-            <Loader2 className="w-10 h-10 animate-spin text-red-500 drop-shadow-[0_0_15px_rgba(229,72,77,0.3)]" />
-          </div>
-        ) : projects.length > 0 ? (
-          projects.map((project) => (
-            <Link 
-              key={project.uid} 
-              // 🔴 MAGIE ICI : On ne met plus ${locale}, on donne le chemin brut
-              href={`/dashboard/projects/${project.uid}`} 
-              className="group bio-card p-6 flex flex-col h-full hover:border-red-500/30 transition-all duration-500"
-            >
-              <div className="flex justify-between items-start mb-4 relative z-10">
-                <div className={`px-2.5 py-1 rounded-sm text-[9px] font-bold uppercase tracking-widest border ${
-                  project.status === 'En Cours' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
-                  project.status === 'Bloqué' || project.status === 'En Pause' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
-                  'bg-slate-800/50 text-slate-400 border-slate-700'
-                }`}>
-                  {project.status}
-                </div>
-                {project.wellbeing?.isAtReducedSpeed && (
-                  <div className="text-amber-500/80 animate-pulse" title="Vitesse réduite activée">
-                    <Activity size={14} />
-                  </div>
+  if (error || !project) {
+    return (
+      <div className="p-8 max-w-4xl mx-auto mt-10">
+        <div className="bio-card p-12 text-center border-red-900/50">
+          <ShieldAlert className="w-16 h-16 text-red-500 mx-auto mb-6 opacity-50" />
+          <h1 className="text-2xl font-bold text-slate-100 mb-4 tracking-tight">Anomalie Détectée</h1>
+          <p className="text-slate-400 font-light mb-8">{error || "Fragment introuvable."}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-700 relative z-0">
+        
+        <button onClick={() => router.push(`/${locale}/dashboard/projects`)} className="flex items-center gap-2 text-slate-500 hover:text-slate-300 transition-colors group w-fit">
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+          <span className="text-xs font-mono uppercase tracking-widest">Retour aux fragments</span>
+        </button>
+
+        {/* HEADER DU PROJET */}
+        <div className="bio-card p-8 md:p-10 relative overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-[400px] h-[400px] bg-red-950/10 blur-[100px] rounded-full pointer-events-none -z-10" />
+          
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div className="relative z-10 w-full md:w-auto flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                {isEditing ? (
+                  <>
+                    <select 
+                      value={editData.status} 
+                      onChange={(e) => setEditData({...editData, status: e.target.value as ProjectStatus})}
+                      className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-md px-2 py-1 outline-none focus:border-red-500 relative z-20"
+                    >
+                      <option value="PLANNED">Planifié</option>
+                      <option value="IN_PROGRESS">En Cours</option>
+                      <option value="PAUSED">En Pause</option>
+                      <option value="REDUCED_SPEED">Vitesse Réduite</option>
+                      <option value="COMPLETED">Terminé</option>
+                    </select>
+                    <select 
+                      value={editData.priority} 
+                      onChange={(e) => setEditData({...editData, priority: e.target.value as ProjectPriority})}
+                      className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-md px-2 py-1 outline-none focus:border-red-500 relative z-20"
+                    >
+                      <option value="TRIVIAL">Triviale</option>
+                      <option value="EASY">Facile</option>
+                      <option value="MEDIUM">Normale</option>
+                      <option value="HARD">Haute</option>
+                      <option value="EXTREME">Extrême</option>
+                      <option value="CRITICAL">Critique</option>
+                    </select>
+                  </>
+                ) : (
+                  <>
+                    <span className={`px-2.5 py-1 rounded-sm text-[10px] font-bold uppercase tracking-widest border ${STATUS_COLORS[project.status as ProjectStatus] || STATUS_COLORS.PLANNED}`}>
+                      {STATUS_LABELS[project.status as ProjectStatus] || project.status}
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest border-l border-slate-700 pl-3">
+                      Priorité : <span className={project.priority === 'CRITICAL' || project.priority === 'EXTREME' || project.priority === 'HARD' ? 'text-rose-400' : 'text-slate-300'}>
+                        {PRIORITY_LABELS[project.priority as ProjectPriority] || project.priority}
+                      </span>
+                    </span>
+                  </>
                 )}
               </div>
-              
-              <h2 className="font-bold text-xl text-slate-200 group-hover:text-red-400 transition-colors duration-500 mb-2 line-clamp-1 relative z-10">
-                {project.title}
-              </h2>
-              
-              <p className="text-sm text-slate-500 font-light line-clamp-2 flex-grow mb-6 relative z-10 group-hover:text-slate-400 transition-colors">
-                {project.description || "Aucune description détaillée pour ce fragment."}
-              </p>
 
-              <div className="mt-auto pt-4 border-t border-slate-800/50 flex items-center justify-between text-xs text-slate-600 relative z-10">
-                <span className="font-mono tracking-widest uppercase">ID: {project.uid.substring(0,6)}</span>
-                <span className="text-red-500 font-medium group-hover:translate-x-2 transition-transform duration-500 flex items-center gap-1">
-                  Explorer <span className="text-[10px]">→</span>
-                </span>
-              </div>
-            </Link>
-          ))
-        ) : (
-          <div className="col-span-full text-center p-16 bio-card border-dashed border-slate-800 rounded-t-none">
-            <div className="text-4xl mb-4 opacity-30 grayscale">🏗️</div>
-            <p className="text-slate-500 mb-6 font-light">L'atelier est vide. Aucun fragment détecté dans la matrice.</p>
-            <button onClick={() => setIsModalOpen(true)} className="text-red-400 font-medium hover:text-red-300 transition-colors tracking-wide hover:underline decoration-red-500/30 underline-offset-4">
-              Démarrez votre premier chantier
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* MODALE D'INCEPTION */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-300">
-          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl no-scrollbar border border-slate-800/50 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
-            <button 
-              onClick={() => setIsModalOpen(false)} 
-              className="absolute top-6 right-6 z-10 text-slate-500 hover:text-red-400 transition-colors bg-slate-900/80 rounded-full p-2 backdrop-blur-md border border-slate-800 hover:border-red-900"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <div className="bg-[#05070A]">
-              <CreateProjectForm onSuccess={handleProjectCreated} />
+              {isEditing ? (
+                <input 
+                  type="text" 
+                  value={editData.title}
+                  onChange={(e) => setEditData({...editData, title: e.target.value})}
+                  className="w-full bg-slate-900/50 border border-slate-700 text-3xl md:text-4xl font-bold text-slate-100 tracking-tight rounded-lg px-3 py-1 outline-none focus:border-red-500 transition-colors relative z-20"
+                />
+              ) : (
+                <h1 className="text-3xl md:text-4xl font-bold text-slate-100 tracking-tight">
+                  {project.title}
+                </h1>
+              )}
+              <p className="text-slate-500 mt-2 font-mono text-xs uppercase tracking-widest">ID: {project.uid}</p>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-3 relative z-10 w-full md:w-auto">
+              {isEditing ? (
+                <>
+                  <button onClick={handleCancelEdit} disabled={isSaving} className="flex-1 md:flex-none flex justify-center items-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-400 rounded-xl font-bold text-xs uppercase tracking-widest transition-all border border-slate-800"><X className="w-4 h-4" /> Annuler</button>
+                  <button onClick={handleSave} disabled={isSaving} className="flex-1 md:flex-none flex justify-center items-center gap-2 px-6 py-2.5 bg-emerald-900/50 hover:bg-emerald-900/80 text-emerald-400 rounded-xl font-bold text-xs uppercase tracking-widest transition-all border border-emerald-900/50 shadow-[0_0_15px_rgba(16,185,129,0.2)]">{isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Valider</button>
+                </>
+              ) : (
+                <>
+                  <button onClick={handleEdit} className="flex-1 md:flex-none flex justify-center items-center gap-2 px-6 py-2.5 bg-slate-900/80 hover:bg-slate-800 text-slate-300 rounded-xl font-bold text-xs uppercase tracking-widest transition-all border border-slate-800 hover:border-slate-700 shadow-inner group"><Edit3 className="w-4 h-4 group-hover:scale-110 transition-transform" /> Éditer</button>
+                  <button onClick={handleDelete} className="flex-1 md:flex-none flex justify-center items-center gap-2 px-6 py-2.5 bg-slate-900/50 hover:bg-red-950/40 text-slate-500 hover:text-red-400 rounded-xl font-bold text-xs uppercase tracking-widest transition-all border border-slate-800 hover:border-red-900/50 shadow-inner group"><Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" /> Purger</button>
+                </>
+              )}
             </div>
           </div>
         </div>
+
+        {/* GRILLE PRINCIPALE */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="col-span-1 lg:col-span-2 space-y-8">
+            {/* DESCRIPTION DU PROJET */}
+            <div className="bio-card p-8">
+              <div className="flex items-center gap-2 mb-6 border-b border-slate-800/50 pb-4">
+                <AlignLeft className="w-5 h-5 text-red-500" />
+                <h2 className="text-sm font-mono font-bold tracking-widest text-slate-300 uppercase">Matrice de Données</h2>
+              </div>
+              {isEditing ? (
+                <textarea value={editData.description} onChange={(e) => setEditData({...editData, description: e.target.value})} rows={6} className="w-full bg-slate-900/50 border border-slate-700 text-slate-300 rounded-lg p-4 outline-none focus:border-red-500 transition-colors resize-y leading-relaxed relative z-20" placeholder="Description du fragment..." />
+              ) : (
+                <div className="text-slate-400 font-light leading-relaxed whitespace-pre-wrap">{project.description || "Aucune description fournie."}</div>
+              )}
+            </div>
+
+            {/* LE BLOC DES BRINDILLES */}
+            <div className="bio-card p-8 border-slate-800/60 relative z-10">
+              <div className="flex items-center justify-between mb-6 border-b border-slate-800/50 pb-4 relative z-20">
+                <div className="flex items-center gap-3">
+                  <Target className="w-5 h-5 text-emerald-500" />
+                  <h2 className="text-sm font-mono font-bold tracking-widest text-slate-300 uppercase">Brindilles du Fragment</h2>
+                </div>
+                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsTaskModalOpen(true); }} className="flex items-center gap-2 px-4 py-2 bg-emerald-950/20 hover:bg-emerald-900/40 text-emerald-400 text-[10px] font-mono uppercase tracking-widest rounded-lg border border-emerald-900/30 hover:border-emerald-500/50 transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)] cursor-pointer relative z-50 pointer-events-auto">
+                  <Plus className="w-4 h-4" /> Forger
+                </button>
+              </div>
+              <div className="text-center py-10 bg-slate-900/20 rounded-xl border border-dashed border-slate-800">
+                <CheckCircle className="w-8 h-8 text-slate-700 mx-auto mb-3 opacity-50" />
+                <p className="text-slate-500 font-light text-sm italic">Aucune brindille n'est actuellement tissée sur ce fragment.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-span-1 space-y-8">
+            <div className="bio-card p-6 border-slate-800/60">
+              <div className="flex items-center gap-2 mb-6">
+                <Activity className="w-4 h-4 text-slate-500" />
+                <h2 className="text-xs font-mono font-bold tracking-widest text-slate-400 uppercase">Télémétrie</h2>
+              </div>
+              <div className="space-y-4">
+                <div><p className="text-[10px] text-slate-600 font-mono uppercase tracking-widest mb-1">Slug</p><p className="text-sm text-slate-300 font-medium">{project.slug}</p></div>
+                {project.teamUid && (
+                  <div className="pt-4 border-t border-slate-800/50">
+                    <p className="text-[10px] text-slate-600 font-mono uppercase tracking-widest mb-2">Escouade Associée</p>
+                    <Link href={`/dashboard/teams/${project.teamUid}`} className="flex items-center justify-between p-3 rounded-lg bg-slate-900/50 border border-slate-800 hover:border-red-900/50 hover:bg-red-950/20 transition-all group">
+                      <span className="text-sm text-slate-300 font-mono group-hover:text-red-400 transition-colors">{project.teamUid.substring(0,8)}...</span>
+                      <span className="text-slate-600 group-hover:text-red-500 transition-colors">→</span>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 🚀 LE SAS : PORTALISÉ AVEC LE VRAI FORMULAIRE */}
+      {mounted && isTaskModalOpen && createPortal(
+        <div className="fixed inset-0 z-[2147483647] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="relative w-full max-w-2xl bg-[#05070A] rounded-2xl border border-emerald-900/30 shadow-[0_0_50px_rgba(0,0,0,0.8)] p-8 max-h-[90vh] overflow-y-auto no-scrollbar">
+            <button onClick={() => setIsTaskModalOpen(false)} className="absolute top-6 right-6 z-10 p-2 text-slate-500 hover:text-red-400 bg-slate-900/80 rounded-full transition-colors border border-slate-800">
+              <X className="w-5 h-5" />
+            </button>
+            <div className="mb-8 mt-2 relative z-0">
+              <div className="flex items-center gap-3 mb-2">
+                <Target className="w-6 h-6 text-emerald-500" />
+                <h3 className="text-2xl font-bold text-slate-100 tracking-tight">Forger une Brindille</h3>
+              </div>
+              <p className="text-slate-400 text-sm font-light">
+                Cette brindille sera ancrée directement sur le fragment <strong className="text-emerald-400 font-medium">{project.title}</strong>.
+              </p>
+            </div>
+            
+            {/* 🌟 LA SOUDURE : Le Vrai Formulaire est ici ! */}
+            <CreateTaskForm 
+              projectId={projectId} 
+              onSuccess={() => setIsTaskModalOpen(false)} 
+            />
+            
+          </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }

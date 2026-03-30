@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
 import React, { useState } from 'react';
 // 🟢 On importe le routeur et le Link magiques de next-intl
-import { useRouter, Link } from '../../../navigation'; 
+import { useRouter, Link } from '../../../../navigation'; 
 import { useTranslations } from 'next-intl';
-import { useVibe } from '../../../context/VibeContext';
-import LoadingZoizos from '../../../components/ui/LoadingZoizos'; 
+import { useVibe } from '../../../../context/VibeContext';
+import LoadingZoizos from '../../../../components/ui/LoadingZoizos'; 
 
 export default function RegisterPage() {
   const t = useTranslations('auth');

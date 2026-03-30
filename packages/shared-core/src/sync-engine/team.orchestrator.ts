@@ -136,8 +136,9 @@ export class TeamOrchestrator {
   static async assignRole(teamUid: string, targetUserUid: string, role: string, permissions: string[] = []) {
     const session = getNeo4jSession();
     try {
+      // 🛠️ FIX : Remplacement de MERGE par MATCH pour l'utilisateur
       const cypher = `
-        MERGE (u:User { uid: $userUid })
+        MATCH (u:User { uid: $userUid })
         WITH u
         MATCH (t:Team { uid: $teamUid })
         MERGE (u)-[r:MEMBER_OF]->(t)

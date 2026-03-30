@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
 import { useState, useEffect, Suspense } from "react";
 // 🛑 Outil natif Next.js (parfait pour lire ?token=...)
 import { useSearchParams } from "next/navigation";
 // 🟢 Routeur magique de next-intl pour garder la langue
-import { useRouter } from "../../../navigation"; 
+import { useRouter } from "../../../../navigation"; 
 
 import { useTranslations } from "next-intl";
 

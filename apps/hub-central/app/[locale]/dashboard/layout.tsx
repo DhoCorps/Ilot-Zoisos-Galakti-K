@@ -10,7 +10,7 @@ import {
   User, 
   LogOut, 
   ChevronRight,
-  Activity
+  Target
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -23,17 +23,30 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
 
   const navItems = [
+
+    // 🌟 LA SOUDURE : Le lien vers le Hub des Nids
+
     { 
       name: 'Observatoire (Nids)', 
       href: '/dashboard/teams', 
       icon: Network,
       color: 'text-red-500'
     },
+
+    // 🌟 LA SOUDURE : Le lien vers le Hub des Fragments
+
     { 
       name: 'Fragments (Projets)', 
       href: '/dashboard/projects', 
       icon: LayoutGrid,
       color: 'text-rose-500'
+    },
+      // 🌟 LA SOUDURE : Le lien vers le Hub des Brindilles
+    { 
+      name: 'Brindilles (Tâches)', 
+      href: '/dashboard/tasks', 
+      icon: Target,              
+      color: 'text-emerald-500'
     },
     { 
       name: 'Laboratoire', 

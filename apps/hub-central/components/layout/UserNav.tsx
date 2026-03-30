@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useRef, useEffect } from 'react';
 // 🟢 Notre boussole i18n
@@ -10,6 +10,9 @@ export function UserNav() {
   const { data: session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  
+  // 🌟 On active le propulseur de navigation qui gère les langues tout seul !
+  const router = useRouter();
 
   // 🪄 Magie : ferme le menu si l'oiseau clique ailleurs sur l'écran
   useEffect(() => {
@@ -23,7 +26,11 @@ export function UserNav() {
   }, []);
 
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: "/auth/login" });
+    // 🌟 LA SOUDURE : On tue la session en interdisant à NextAuth de nous rediriger de force...
+    await signOut({ redirect: false });
+    
+    // ... et on utilise notre propre routeur qui va automatiquement ajouter '/fr' ou '/en' !
+    router.push('/auth/login');
   };
 
   if (!session?.user) return null;
@@ -83,7 +90,7 @@ export function UserNav() {
           <div className="border-t border-slate-800 py-1">
             <button
               onClick={handleSignOut}
-              className="flex w-full items-center px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors text-left"
+              className="flex w-full items-center px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors text-left cursor-pointer"
             >
               <LogOut className="mr-2 h-4 w-4" />
               S'envoler (Déconnexion)

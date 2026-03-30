@@ -1,116 +1,142 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from "../../../../navigation";
-import { Users, Plus, Loader2, X, Network, ShieldCheck } from "lucide-react";
-import { teams as teamsApi } from "../../../../lib/apiClient"; 
-import { CreateTeamForm } from "../../../../components/teams/CreateTeamForm";
-import { NestCard } from "../../../../components/nids/NestCard";
+import { Plus, Loader2, X, Activity, Users } from "lucide-react";
+import { CreateTeamForm } from "../../../../components/teams/CreateTeamForm"; 
 
 export default function TeamsListPage() {
-  const [nids, setNids] = useState<any[]>([]);
+  const [teams, setTeams] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  const [mounted, setMounted] = useState(false);
 
-  // 1. Scan de la Canopée via l'apiClient
-  const fetchNids = async () => {
+  const fetchTeams = async () => {
     try {
       setIsLoading(true);
-      const response = await teamsApi.getAll();
-      // On s'assure d'avoir un tableau propre
-      setNids(Array.isArray(response) ? response : []);
+      const response = await fetch('/api/teams'); 
+      if (response.ok) {
+        const result = await response.json();
+        const extractedTeams = result.data || result.teams || (Array.isArray(result) ? result : []);
+        setTeams(extractedTeams);
+      }
     } catch (error) {
-      console.error("🚨 Perturbation lors du scan des nids :", error);
+      console.error("Impossible d'observer les Nids :", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchNids();
+    setMounted(true);
+    fetchTeams();
   }, []);
 
   const handleSuccess = () => {
     setIsModalOpen(false);
-    fetchNids(); 
+    fetchTeams();
   };
 
   return (
-    <div className="min-h-screen bg-[#05070A] p-8 md:p-12">
-      <div className="max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700">
+    <>
+      <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700 relative z-0">
         
-        {/* EN-TÊTE DE LA FORGE */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 border-b border-slate-800/50 pb-10">
+        {/* HEADER DE LA PAGE */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h1 className="text-4xl font-black text-slate-100 tracking-tighter flex items-center gap-4">
-              <Network className="w-10 h-10 text-red-600" strokeWidth={2.5} />
-              OBSERVATOIRE DES NIDS
+            <h1 className="text-3xl md:text-4xl font-bold text-slate-100 tracking-tight flex items-center gap-3">
+              <Users className="w-8 h-8 text-red-500" />
+              Vos Nids (Équipes)
             </h1>
-            <p className="text-slate-500 mt-2 font-mono text-[10px] uppercase tracking-[0.3em]">
-              Gestion des infrastructures collectives et des escouades
+            <p className="text-slate-500 mt-2 font-mono text-xs uppercase tracking-widest">
+              Gérez vos escouades et la sécurité collective
             </p>
           </div>
-
+          
+          {/* BOUTON BLINDÉ N°1 */}
           <button 
-            onClick={() => setIsModalOpen(true)}
-            className="group flex items-center gap-3 px-8 py-4 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-[0_0_30px_rgba(220,38,38,0.2)]"
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsModalOpen(true);
+            }} 
+            className="flex items-center gap-2 px-6 py-3 bg-red-900/80 hover:bg-red-800 text-slate-100 rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(220,38,38,0.2)] border border-red-500/30 cursor-pointer relative z-50 pointer-events-auto"
           >
-            <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+            <Plus className="w-5 h-5" />
             Tresser un Nid
           </button>
         </div>
 
         {/* GRILLE DES NIDS */}
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-32 space-y-4">
-            <Loader2 className="w-12 h-12 animate-spin text-red-600" />
-            <p className="font-mono text-[10px] text-slate-700 uppercase tracking-widest">Calcul des vecteurs de la canopée...</p>
+          <div className="min-h-[40vh] flex flex-col items-center justify-center">
+            <Loader2 className="w-10 h-10 animate-spin text-red-500 mb-4" />
+            <p className="text-xs font-mono text-red-500/80 uppercase tracking-widest animate-pulse">Scan de la canopée...</p>
           </div>
-        ) : nids.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {nids.map((team) => (
-              <NestCard key={team.uid} team={team} />
+        ) : teams.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {teams.map((team) => (
+              <Link 
+                key={team.uid || team._id} 
+                href={`/dashboard/teams/${team.uid || team._id}`}
+                className="bio-card p-6 group hover:border-red-500/50 transition-all duration-300 relative overflow-hidden"
+              >
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-900 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <h3 className="text-xl font-bold text-slate-100 mb-2 group-hover:text-red-400 transition-colors">{team.name}</h3>
+                <p className="text-slate-500 text-sm mb-4 line-clamp-2 min-h-[40px]">
+                  {team.description || "Aucune description fournie par le fondateur."}
+                </p>
+                <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-slate-600">
+                  <span className="flex items-center gap-1"><Activity className="w-3 h-3" /> UID: {(team.uid || team._id || "inconnu").toString().substring(0,8)}</span>
+                </div>
+              </Link>
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-40 border-2 border-dashed border-slate-900 rounded-3xl bg-slate-950/20">
-            <div className="text-6xl mb-6 opacity-20 grayscale">🪺</div>
-            <p className="text-slate-500 font-light text-center max-w-sm leading-relaxed">
-              Aucune signature thermique détectée. <br/>
-              Votre environnement est prêt pour une nouvelle inception.
-            </p>
+          <div className="bio-card p-12 text-center border-dashed border-slate-800 rounded-t-none relative z-10">
+            <div className="text-4xl mb-4 opacity-30 grayscale">🪺</div>
+            <p className="text-slate-500 mb-6 font-light italic">"Un oiseau ne chante bien que dans son propre nid."</p>
+            
+            {/* BOUTON BLINDÉ N°2 */}
             <button 
-              onClick={() => setIsModalOpen(true)}
-              className="mt-8 text-red-500 hover:text-red-400 font-black text-xs uppercase tracking-widest underline underline-offset-8"
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsModalOpen(true);
+              }} 
+              className="text-red-400 font-medium hover:text-red-300 transition-colors tracking-wide hover:underline decoration-red-500/30 underline-offset-4 uppercase text-xs font-mono cursor-pointer relative z-50 pointer-events-auto"
             >
-              Initier le premier tressage
+              Tressez votre premier nid
             </button>
           </div>
         )}
       </div>
 
-      {/* MODALE D'INCEPTION (High-Visibility) */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-black/95 backdrop-blur-md animate-in fade-in duration-500" 
-            onClick={() => setIsModalOpen(false)} 
-          />
-          
-          <div className="relative w-full max-w-xl bg-[#05070A] border border-slate-800 rounded-3xl shadow-[0_0_100px_rgba(0,0,0,1)] overflow-hidden animate-in zoom-in-95 duration-300">
+      {/* 🚀 L'HYPER-SAUT : LE PORTAIL DE LA MODALE */}
+      {mounted && isModalOpen && createPortal(
+        <div 
+          className="fixed top-0 left-0 w-screen h-screen flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-300"
+          style={{ zIndex: 2147483647 }} 
+        >
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl no-scrollbar border border-slate-800/50 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
+            
             <button 
               onClick={() => setIsModalOpen(false)} 
-              className="absolute top-6 right-6 z-[1001] p-2 text-slate-500 hover:text-red-500 transition-all"
+              className="absolute top-6 right-6 z-50 text-slate-500 hover:text-red-400 transition-colors bg-slate-900/80 rounded-full p-2 backdrop-blur-md border border-slate-800 hover:border-red-900"
             >
-              <X size={24} />
+              <X className="w-5 h-5" />
             </button>
 
-            <div className="max-h-[85vh] overflow-y-auto no-scrollbar">
-              <CreateTeamForm onSuccess={handleSuccess} />
-            </div>
+            <CreateTeamForm onSuccess={handleSuccess} />
+            
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }

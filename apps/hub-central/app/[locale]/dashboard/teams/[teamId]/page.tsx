@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom'; // 🌟 LA SOUDURE PORTAL
 import { useParams, useRouter } from 'next/navigation';
 import { RolesTab } from '../../../../../components/roles/RolesTab'; 
 import { teams, users } from '../../../../../lib/apiClient'; 
@@ -17,8 +18,11 @@ export default function TeamDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
-  
   const [allBirds, setAllBirds] = useState<any[]>([]);
+
+  // 🌟 VÉRIFICATION DU MONTAGE POUR LE PORTAL
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   // États pour les modales
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -140,7 +144,6 @@ export default function TeamDetailsPage() {
   
   return (
     <>
-
       {/* CONTENEUR PRINCIPAL DE LA PAGE */}
       <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700 relative z-0">
         
@@ -172,8 +175,11 @@ export default function TeamDetailsPage() {
 
             <button 
               type="button"
-              onClick={() => setIsInviteModalOpen(true)}
-              className="flex-1 md:flex-none flex justify-center items-center gap-2 px-6 py-2.5 bg-slate-900/50 hover:bg-slate-800 text-slate-300 rounded-xl font-bold transition-all border border-slate-800 cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                setIsInviteModalOpen(true);
+              }}
+              className="flex-1 md:flex-none flex justify-center items-center gap-2 px-6 py-2.5 bg-slate-900/50 hover:bg-slate-800 text-slate-300 rounded-xl font-bold transition-all border border-slate-800 cursor-pointer relative z-20"
             >
               <UserPlus className="w-5 h-5 text-red-500" />
               Connecter
@@ -183,7 +189,7 @@ export default function TeamDetailsPage() {
 
         {/* SECTION : CHANTIERS (FRAGMENTS) */}
         <div className="bio-card p-6 border-slate-800/60 relative z-10">
-          <div className="flex items-center justify-between mb-6 border-b border-slate-800/50 pb-4">
+          <div className="flex items-center justify-between mb-6 border-b border-slate-800/50 pb-4 relative z-20">
             <div className="flex items-center gap-3">
               <LayoutGrid className="w-5 h-5 text-red-500" />
               <h2 className="text-sm font-mono font-bold tracking-widest text-slate-300 uppercase">
@@ -191,8 +197,12 @@ export default function TeamDetailsPage() {
               </h2>
             </div>
             <button
-              onClick={() => setIsProjectModalOpen(true)}
-              className="px-4 py-2 bg-red-950/20 hover:bg-red-900/40 text-red-400 hover:text-red-300 text-[10px] font-mono uppercase tracking-widest rounded-lg border border-red-900/30 hover:border-red-500/50 transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(229,72,77,0.1)]"
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                setIsProjectModalOpen(true);
+              }}
+              className="px-4 py-2 bg-red-950/20 hover:bg-red-900/40 text-red-400 hover:text-red-300 text-[10px] font-mono uppercase tracking-widest rounded-lg border border-red-900/30 hover:border-red-500/50 transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(229,72,77,0.1)] cursor-pointer relative z-30"
             >
               <span className="text-lg leading-none">+</span> Forger un Fragment
             </button>
@@ -206,7 +216,7 @@ export default function TeamDetailsPage() {
         </div>
 
         {/* GRILLE PRINCIPALE : MEMBRES & RÔLES */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
           
           {/* COLONNE GAUCHE : LISTE DES MEMBRES */}
           <div className="col-span-1 bio-card p-6 h-fit border-slate-800/60">
@@ -299,108 +309,78 @@ export default function TeamDetailsPage() {
           </div>
         </div>
       </div>
-      {/* FIN DU CONTENEUR PRINCIPAL */}
 
-      {/* MODALES PLACÉES EN DEHORS POUR NE PAS ÊTRE BLOQUÉES */}
+      {/* 🚀 MODALES PORTALISÉES POUR NE JAMAIS ÊTRE BLOQUÉES PAR LE LAYOUT */}
 
-      {/* MODALE D'INVITATION INDESTRUCTIBLE */}
-      {isInviteModalOpen && (
-        <div style={{ 
-          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', 
-          backgroundColor: 'rgba(15, 23, 42, 0.95)', /* Gris bleuté sombre */
-          zIndex: 2147483647, /* Le z-index maximum autorisé par les navigateurs */
-          display: 'flex', alignItems: 'center', justifyContent: 'center', 
-          margin: 0, padding: '20px' 
-        }}>
-          
-          <div style={{ 
-            backgroundColor: '#0f172a', /* Fond Gris bleuté */
-            border: '1px solid #7f1d1d', /* Bordure Rouge sombre */
-            borderRadius: '16px', padding: '32px', width: '100%', maxWidth: '450px', 
-            position: 'relative', boxShadow: '0 0 50px rgba(0,0,0,0.8)' 
-          }}>
-            
+      {/* 1. MODALE D'INVITATION */}
+      {mounted && isInviteModalOpen && createPortal(
+        <div 
+          className="fixed top-0 left-0 w-screen h-screen flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300"
+          style={{ zIndex: 2147483647 }}
+        >
+          <div className="relative w-full max-w-md bg-slate-900 border border-red-900/50 rounded-2xl p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
             <button 
               onClick={() => setIsInviteModalOpen(false)} 
-              style={{ position: 'absolute', top: '16px', right: '16px', color: '#94a3b8', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '20px' }}
+              className="absolute top-4 right-4 text-slate-500 hover:text-red-400 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
             
-            <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#f1f5f9', marginBottom: '24px', letterSpacing: '-0.025em' }}>
-              Connecter une Entité
-            </h2>
+            <h2 className="text-xl font-bold text-slate-100 mb-6 tracking-tight">Connecter une Entité</h2>
             
-            <form onSubmit={handleInvite} className="space-y-5">
-              
+            <form onSubmit={handleInvite} className="space-y-6">
               <div>
-                <label style={{ display: 'block', fontSize: '10px', fontFamily: 'monospace', color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                  Identifiant Cible
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <select
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    style={{ width: '100%', padding: '12px 16px', backgroundColor: '#020617', border: '1px solid #1e293b', borderRadius: '12px', color: '#e2e8f0', outline: 'none', appearance: 'none', cursor: 'pointer' }}
-                    required
-                  >
-                    <option value="" disabled style={{ color: '#64748b' }}>-- Scanner le grand troupeau --</option>
-                    {availableBirds.length === 0 ? (
-                      <option disabled>Tous les oiseaux connus sont déjà dans le nid.</option>
-                    ) : (
-                      availableBirds.map((bird) => (
-                        <option key={bird._id || bird.uid} value={bird.email} style={{ backgroundColor: '#020617', color: '#e2e8f0' }}>
-                          {bird.username} ({bird.email})
-                        </option>
-                      ))
-                    )}
-                  </select>
-                  <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#64748b' }}>▼</div>
-                </div>
+                <label className="block text-[10px] font-mono text-slate-500 mb-2 uppercase tracking-widest">Identifiant Cible</label>
+                <select
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 outline-none focus:border-red-500/50"
+                  required
+                >
+                  <option value="" disabled className="text-slate-600">-- Scanner le grand troupeau --</option>
+                  {availableBirds.length === 0 ? (
+                    <option disabled>Tous les oiseaux connus sont déjà dans le nid.</option>
+                  ) : (
+                    availableBirds.map((bird) => (
+                      <option key={bird._id || bird.uid} value={bird.email}>
+                        {bird.username} ({bird.email})
+                      </option>
+                    ))
+                  )}
+                </select>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '10px', fontFamily: 'monospace', color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                  Niveau d'Accès
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <select
-                    value={inviteRole}
-                    onChange={(e) => setInviteRole(e.target.value)}
-                    style={{ width: '100%', padding: '12px 16px', backgroundColor: '#020617', border: '1px solid #1e293b', borderRadius: '12px', color: '#e2e8f0', outline: 'none', appearance: 'none', cursor: 'pointer' }}
-                  >
-                    <option value="VISITEUR" style={{ backgroundColor: '#020617', color: '#cbd5e1' }}>Observateur (Lecture seule)</option>
-                    <option value="BATISSEUR" style={{ backgroundColor: '#020617', color: '#cbd5e1' }}>Bâtisseur (Modification)</option>
-                    <option value="ADMIN" style={{ backgroundColor: '#020617', color: '#f87171', fontWeight: 'bold' }}>Superviseur (Privilèges max)</option>
-                  </select>
-                  <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#64748b' }}>▼</div>
-                </div>
+                <label className="block text-[10px] font-mono text-slate-500 mb-2 uppercase tracking-widest">Niveau d'Accès</label>
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value)}
+                  className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 outline-none focus:border-red-500/50"
+                >
+                  <option value="VISITEUR">Observateur (Lecture seule)</option>
+                  <option value="BATISSEUR">Bâtisseur (Modification)</option>
+                  <option value="ADMIN" className="text-red-400 font-bold">Superviseur (Privilèges max)</option>
+                </select>
               </div>
 
               <button 
                 type="submit" 
                 disabled={isInviting || !inviteEmail} 
-                style={{ width: '100%', marginTop: '32px', padding: '12px', background: isInviting || !inviteEmail ? '#334155' : '#e2e8f0', color: isInviting || !inviteEmail ? '#94a3b8' : '#0f172a', borderRadius: '12px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '11px', cursor: isInviting || !inviteEmail ? 'not-allowed' : 'pointer', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                className="w-full py-3 bg-slate-200 hover:bg-white disabled:bg-slate-800 disabled:text-slate-600 text-slate-900 rounded-xl font-black uppercase tracking-widest text-[11px] transition-all flex items-center justify-center gap-2"
               >
-                {isInviting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Suture en cours...
-                  </>
-                ) : (
-                  "Valider l'Injection"
-                )}
+                {isInviting ? <><Loader2 className="w-4 h-4 animate-spin" /> Suture...</> : "Valider l'Injection"}
               </button>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* MODALE DE CRÉATION DE PROJET (FRAGMENT) */}
-      {isProjectModalOpen && (
+      {/* 2. MODALE DE CRÉATION DE PROJET (FRAGMENT) */}
+      {mounted && isProjectModalOpen && createPortal(
         <div 
-          className="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
-          style={{ zIndex: 2147483647 }} // 🌟 FIX : On aligne le z-index sur l'autre modale
+          className="fixed top-0 left-0 w-screen h-screen flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300"
+          style={{ zIndex: 2147483647 }}
         >
           <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl no-scrollbar border border-slate-800/50 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
             <button 
@@ -412,13 +392,12 @@ export default function TeamDetailsPage() {
             <div className="bg-[#05070A]">
               <CreateProjectForm 
                 teamId={teamId} 
-                onSuccess={() => {
-                  setIsProjectModalOpen(false);
-                }} 
+                onSuccess={() => setIsProjectModalOpen(false)} 
               />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
